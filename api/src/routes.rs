@@ -2,9 +2,11 @@ use utoipa_axum::router::UtoipaMethodRouter;
 
 use crate::state::AppState;
 
+mod health;
+mod movies;
+
 pub fn routes() -> Vec<Route> {
-    // [api::routes()].concat()
-    vec![]
+    [movies::routes(), health::routes()].concat()
 }
 
 #[derive(Clone)]
