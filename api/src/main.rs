@@ -1,6 +1,7 @@
 mod axum_error;
 mod database;
 mod middlewares;
+mod models;
 mod mongo_id;
 mod routes;
 mod settings;

@@ -17,7 +17,7 @@ use utoipa::ToSchema;
 use crate::{
     GroupClaims,
     axum_error::{AxumError, AxumResult},
-    database::User,
+    models::User,
     state::AppState,
 };
 

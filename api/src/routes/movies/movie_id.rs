@@ -1,3 +1,20 @@
+use axum::{Extension, Json, extract::State};
+
+use crate::{
+    axum_error::AxumResult,
+    middlewares::require_auth::{UnauthorizedError, UserData},
+    routes::{Route, RouteProtectionLevel},
+    state::AppState,
+};
+
+use utoipa_axum::routes;
+
+const PATH: &str = "/api/movies/{movie_id}";
+
+pub fn routes() -> Vec<Route> {
+    vec![(routes!(get_movie), RouteProtectionLevel::Authenticated)]
+}
+
 /// Get a movie
 #[utoipa::path(
     method(get),
@@ -6,12 +23,12 @@
         // (status = OK, description = "Success", body = Vec<Organization>),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json")
     ),
-    tag = "Organizations"
+    tag = "Movies"
 )]
 pub async fn get_movie(
-    Path(movie_id): Path<String>,
-    Extension(state): Extension<AppState>,
-) -> Result<impl IntoResponse, ApiError> {
+    Extension(user): Extension<UserData>,
+    State(state): State<AppState>,
+) -> AxumResult<Json<Movie>> {
     let movie_id = mongo_id::parse_object_id(&movie_id)?;
     let movie = state
         .movies

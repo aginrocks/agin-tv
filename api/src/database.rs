@@ -1,10 +1,7 @@
-use crate::mongo_id::object_id_as_string_required;
 use crate::settings::Settings;
 
 use color_eyre::eyre::Result;
-use mongodb::{Client, Database, bson::oid::ObjectId};
-use partial_struct::Partial;
-use serde::{Deserialize, Serialize};
+use mongodb::{Client, Database};
 use tower_sessions::{
     Expiry, SessionManagerLayer,
     cookie::{SameSite, time::Duration},
@@ -13,8 +10,6 @@ use tower_sessions_redis_store::{
     RedisStore,
     fred::prelude::{ClientLike, Config, Pool},
 };
-use utoipa::ToSchema;
-use visible::StructFields;
 
 pub async fn init_database(settings: &Settings) -> Result<Database> {
     let client = Client::with_uri_str(&settings.db.connection_string).await?;
@@ -41,23 +36,3 @@ pub async fn init_session_store(
 
     Ok(session_layer)
 }
-
-macro_rules! database_object {
-    ($name:ident { $($field:tt)* }$(, $($omitfield:ident),*)?) => {
-        #[derive(Partial, Debug, Serialize, Deserialize, ToSchema, Clone)]
-        #[partial(omit(id $(, $($omitfield),* )?), derive(Debug, Serialize, Deserialize, ToSchema, Clone))]
-        #[StructFields(pub)]
-        pub struct $name {
-            $($field)*
-        }
-    };
-}
-
-database_object!(User {
-    #[serde(rename = "_id", with = "object_id_as_string_required")]
-    #[schema(value_type = String)]
-    id: ObjectId,
-    subject: String,
-    name: String,
-    email: String,
-});
