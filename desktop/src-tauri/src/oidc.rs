@@ -1,10 +1,9 @@
 use std::{env, sync::Arc};
 
 use axum::{extract::Query, response::IntoResponse, routing::get, Extension, Router};
-use openidconnect::{
-    AuthUrl, Client, ClientId, ClientSecret, IssuerUrl, JsonWebKeySet, RedirectUrl, TokenUrl,
-};
+use openidconnect::core::CoreProviderMetadata;
 use openidconnect::{AuthorizationCode, CsrfToken, PkceCodeVerifier};
+use openidconnect::{Client, ClientId, ClientSecret, IssuerUrl, RedirectUrl};
 use serde::Deserialize;
 use tauri::Manager;
 use tokio::sync::{oneshot, Mutex};
@@ -14,23 +13,23 @@ use crate::state::{AppState, OidcClient};
 pub fn create_client(redirect_url: RedirectUrl) -> OidcClient {
     let client_id = ClientId::new(env::var("CLIENT_ID").expect("No cliend id"));
 
-    let auth_url =
-        AuthUrl::new(env::var("AUTH_URL").expect("No auth url")).expect("Invalid AUTH_URL!");
-
-    let token_url =
-        TokenUrl::new(env::var("TOKEN_URL").expect("No token url")).expect("Invalid TOKEN_URL!");
-
     let client_secret = ClientSecret::new(env::var("CLIENT_SECRET").expect("No client secret"));
 
-    Client::new(
-        client_id,
-        IssuerUrl::new(env::var("ISSUER_URL").expect("No token url")).expect("Invalid ISSUER_URL!"),
-        JsonWebKeySet::new(vec![]),
+    let http_client = openidconnect::reqwest::blocking::ClientBuilder::new()
+        // Following redirects opens the client up to SSRF vulnerabilities.
+        .redirect(openidconnect::reqwest::redirect::Policy::none())
+        .build()
+        .expect("Client should build");
+
+    let provider_metadata = CoreProviderMetadata::discover(
+        &IssuerUrl::new(env::var("ISSUER_URL").expect("No issuer url"))
+            .expect("Invalid ISSUER_URL!"),
+        &http_client,
     )
-    .set_redirect_uri(redirect_url)
-    .set_auth_uri(auth_url)
-    .set_token_uri(token_url)
-    .set_client_secret(client_secret)
+    .expect("Failed to discover provider metadata");
+
+    Client::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
+        .set_redirect_uri(redirect_url)
 }
 
 #[derive(Deserialize)]
@@ -51,13 +50,21 @@ async fn authorize(
         return "authorized".to_string().into_response(); // never let them know your next move
     }
 
-    let _token = auth
-        .client
-        .exchange_code(query.code.clone())
+    let exchange = auth.client.exchange_code(query.code.clone());
+
+    if let Err(e) = exchange {
+        eprintln!("Failed to exchange code: {e}");
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to exchange code",
+        )
+            .into_response();
+    }
+    let _token = exchange
+        .unwrap()
         .set_pkce_verifier(PkceCodeVerifier::new(auth.pkce.1.clone()))
         .request_async(&auth.http_client)
-        .await
-        .unwrap();
+        .await;
 
     // Signal the server to shutdown
     if let Some(tx) = shutdown_tx.lock().await.take() {

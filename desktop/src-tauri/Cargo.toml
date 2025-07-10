@@ -29,6 +29,6 @@ tokio = "1.46.1"
 axum = "0.8.4"
 reqwest = "0.12.22"
 open = "5.3.2"
-openidconnect = "4.0.1"
+openidconnect = { version = "4.0.1", features = ["reqwest-blocking"] }
 dotenvy = "0.15.7"
 
