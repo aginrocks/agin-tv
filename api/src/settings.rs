@@ -139,7 +139,7 @@ impl Settings {
             },
             db: Db {
                 connection_string: "mongodb://localhost:27017".to_string(),
-                database_name: "agin-ci".to_string(),
+                database_name: "agin-tv".to_string(),
             },
             oidc: Oidc {
                 issuer: IssuerUrl::new("https://example.com".to_string()).unwrap(),

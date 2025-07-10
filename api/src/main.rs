@@ -122,12 +122,12 @@ async fn init_axum(
     state: AppState,
     session_layer: SessionManagerLayer<RedisStore<Pool>>,
 ) -> Result<Router> {
-    // let oidc_login_service = ServiceBuilder::new()
-    //     .layer(HandleErrorLayer::new(|e: MiddlewareError| async {
-    //         error!(error = ?e, "An error occurred in OIDC login middleware");
-    //         e.into_response()
-    //     }))
-    //     .layer(OidcLoginLayer::<GroupClaims>::new());
+    let oidc_login_service = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|e: MiddlewareError| async {
+            error!(error = ?e, "An error occurred in OIDC login middleware");
+            e.into_response()
+        }))
+        .layer(OidcLoginLayer::<GroupClaims>::new());
 
     let app_url = format!(
         "{}/oidc",
@@ -151,18 +151,18 @@ async fn init_axum(
         oidc_client = oidc_client.with_client_secret(client_secret.secret().clone());
     }
 
-    // let oidc_client = oidc_client
-    //     .discover(state.settings.oidc.issuer.deref().clone())
-    //     .instrument(info_span!("oidc_discover"))
-    //     .await?
-    //     .build();
+    let oidc_client = oidc_client
+        .discover(state.settings.oidc.issuer.deref().clone())
+        .instrument(info_span!("oidc_discover"))
+        .await?
+        .build();
 
-    // let oidc_auth_service = ServiceBuilder::new()
-    //     .layer(HandleErrorLayer::new(|e: MiddlewareError| async {
-    //         error!(error = ?e, "An error occurred in OIDC auth middleware");
-    //         e.into_response()
-    //     }))
-    //     .layer(OidcAuthLayer::new(oidc_client));
+    let oidc_auth_service = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|e: MiddlewareError| async {
+            error!(error = ?e, "An error occurred in OIDC auth middleware");
+            e.into_response()
+        }))
+        .layer(OidcAuthLayer::new(oidc_client));
 
     let routes = routes::routes();
 
@@ -183,8 +183,8 @@ async fn init_axum(
         .clone()
         .into_iter()
         .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Redirect))
-        .fold(redirect_router, |router, (route, _)| router.routes(route));
-    // .layer(oidc_login_service.clone());
+        .fold(redirect_router, |router, (route, _)| router.routes(route))
+        .layer(oidc_login_service.clone());
 
     // Add protected routes which don't redirect but require authentication
     let auth_router = routes
@@ -204,7 +204,7 @@ async fn init_axum(
     let oidc_handler_router: OpenApiRouter<AppState> =
         OpenApiRouter::with_openapi(ApiDoc::openapi())
             // .layer(session_layer.clone()) // Apply session layer first
-            // .layer(oidc_login_service) //TODO: Add OIDC login service layer
+            .layer(oidc_login_service)
             .route(
                 "/oidc",
                 any(|session, oidc_client, query| async move {
@@ -212,7 +212,7 @@ async fn init_axum(
                         Ok(response) => response.into_response(),
                         Err(e) => {
                             error!(error = ?e, "OIDC redirect handler error: {}", e);
-                            (StatusCode::BAD_REQUEST, format!("OIDC error: {e}")).into_response()
+                            (StatusCode::BAD_REQUEST, format!("OIDC error: {}", e)).into_response()
                         }
                     }
                 }),
@@ -220,50 +220,30 @@ async fn init_axum(
 
     let router = router.merge(oidc_handler_router);
 
-    // let (router, api) = router.with_state(state).split_for_parts();
+    let (router, api) = router.with_state(state).split_for_parts();
 
     let openapi_prefix = "/apidoc";
     let spec_path = format!("{openapi_prefix}/openapi.json");
 
-    // let router = router
-    //     .merge(Redoc::with_url(
-    //         format!("{openapi_prefix}/redoc"),
-    //         api.clone(),
-    //     ))
-    //     .merge(RapiDoc::new(spec_path.clone()).path(format!("{openapi_prefix}/rapidoc")))
-    //     .merge(Scalar::with_url(
-    //         format!("{openapi_prefix}/scalar"),
-    //         api.clone(),
-    //     ))
-    //     .route(
-    //         &spec_path,
-    //         axum::routing::get(|| async move { axum::response::Json(api) }),
-    //     );
-
-    // let router = router
-    //     .layer(oidc_auth_service)
-    //     .layer(session_layer)
-    //     .fallback(|| async { (StatusCode::NOT_FOUND, "Not found").into_response() });
-
-    let routes = routes::routes();
-
-    let public_router = OpenApiRouter::with_openapi(ApiDoc::openapi());
-
-    let (router, api) = routes
-        .clone()
-        .into_iter()
-        .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Public))
-        .fold(public_router, |router, (route, _)| router.routes(route))
-        .with_state(state)
-        .split_for_parts();
-
-    let spec_path = "/apidoc/openapi.json";
+    let router = router
+        .merge(Redoc::with_url(
+            format!("{openapi_prefix}/redoc"),
+            api.clone(),
+        ))
+        .merge(RapiDoc::new(spec_path.clone()).path(format!("{openapi_prefix}/rapidoc")))
+        .merge(Scalar::with_url(
+            format!("{openapi_prefix}/scalar"),
+            api.clone(),
+        ))
+        .route(
+            &spec_path,
+            axum::routing::get(|| async move { axum::response::Json(api) }),
+        );
 
     let router = router
-        .merge(SwaggerUi::new("/apidoc/swagger-ui").url(spec_path, api.clone()))
-        .merge(Redoc::with_url("/apidoc/redoc", api.clone()))
-        .merge(RapiDoc::new(spec_path).path("/apidoc/rapidoc"))
-        .merge(Scalar::with_url("/apidoc/scalar", api));
+        .layer(oidc_auth_service)
+        .layer(session_layer)
+        .fallback(|| async { (StatusCode::NOT_FOUND, "Not found").into_response() });
 
     Ok(router)
 }

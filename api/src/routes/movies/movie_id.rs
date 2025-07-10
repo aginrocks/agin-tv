@@ -28,13 +28,13 @@ pub fn routes() -> Vec<Route> {
 pub async fn get_movie(
     Extension(user): Extension<UserData>,
     State(state): State<AppState>,
-) -> AxumResult<Json<Movie>> {
-    let movie_id = mongo_id::parse_object_id(&movie_id)?;
-    let movie = state
-        .movies
-        .find_one(doc! { "_id": movie_id }, None)
-        .await?
-        .ok_or(ApiError::NotFound)?;
+) -> AxumResult<()> {
+    // let movie_id = mongo_id::parse_object_id(&movie_id)?;
+    // let movie = state
+    //     .movies
+    //     .find_one(doc! { "_id": movie_id }, None)
+    //     .await?
+    //     .ok_or(ApiError::NotFound)?;
 
-    Ok(Json(movie))
+    Ok(())
 }
