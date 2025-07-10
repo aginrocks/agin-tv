@@ -33,7 +33,6 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_scalar::{Scalar, Servable as _};
-use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     database::{init_database, init_session_store},
@@ -212,7 +211,7 @@ async fn init_axum(
                         Ok(response) => response.into_response(),
                         Err(e) => {
                             error!(error = ?e, "OIDC redirect handler error: {}", e);
-                            (StatusCode::BAD_REQUEST, format!("OIDC error: {}", e)).into_response()
+                            (StatusCode::BAD_REQUEST, format!("OIDC error: {e}")).into_response()
                         }
                     }
                 }),

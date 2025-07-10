@@ -1,4 +1,4 @@
-use axum::{Extension, Json, extract::State};
+use axum::{Extension, extract::State};
 
 use crate::{
     axum_error::AxumResult,

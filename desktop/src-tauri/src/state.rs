@@ -4,11 +4,12 @@ use openidconnect::{
         CoreJweContentEncryptionAlgorithm, CoreRegisterErrorResponseType,
         CoreTokenIntrospectionResponse, CoreTokenResponse,
     },
-    EmptyAdditionalClaims,
+    CsrfToken, EmptyAdditionalClaims, PkceCodeChallenge,
 };
+use reqwest::Client;
 use std::{net::SocketAddr, sync::Arc};
 
-type OidcClient = openidconnect::Client<
+pub type OidcClient = openidconnect::Client<
     EmptyAdditionalClaims,
     CoreAuthDisplay,
     CoreGenderClaim,
@@ -29,6 +30,9 @@ type OidcClient = openidconnect::Client<
 >;
 #[derive(Clone)]
 pub struct AppState {
+    pub http_client: Client,
+    pub csrf_token: CsrfToken,
     pub client: Arc<OidcClient>,
     pub socket_addr: SocketAddr,
+    pub pkce: Arc<(PkceCodeChallenge, String)>,
 }
