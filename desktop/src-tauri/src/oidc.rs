@@ -2,7 +2,7 @@ use std::{env, sync::Arc};
 
 use axum::{extract::Query, response::IntoResponse, routing::get, Extension, Router};
 use openidconnect::core::CoreProviderMetadata;
-use openidconnect::{AuthorizationCode, CsrfToken, PkceCodeVerifier};
+use openidconnect::{AuthorizationCode, CsrfToken, OAuth2TokenResponse, PkceCodeVerifier};
 use openidconnect::{Client, ClientId, ClientSecret, IssuerUrl, RedirectUrl};
 use serde::Deserialize;
 use tauri::Manager;
@@ -13,7 +13,10 @@ use crate::state::{AppState, OidcClient};
 pub fn create_client(redirect_url: RedirectUrl) -> OidcClient {
     let client_id = ClientId::new(env::var("CLIENT_ID").expect("No cliend id"));
 
-    let client_secret = ClientSecret::new(env::var("CLIENT_SECRET").expect("No client secret"));
+    let client_secret = match env::var("CLIENT_SECRET") {
+        Ok(client_secret) => Some(ClientSecret::new(client_secret)),
+        Err(_) => None,
+    };
 
     let http_client = openidconnect::reqwest::blocking::ClientBuilder::new()
         // Following redirects opens the client up to SSRF vulnerabilities.
@@ -28,7 +31,7 @@ pub fn create_client(redirect_url: RedirectUrl) -> OidcClient {
     )
     .expect("Failed to discover provider metadata");
 
-    Client::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
+    Client::from_provider_metadata(provider_metadata, client_id, client_secret)
         .set_redirect_uri(redirect_url)
 }
 
@@ -60,11 +63,13 @@ async fn authorize(
         )
             .into_response();
     }
-    let _token = exchange
+    let token = exchange
         .unwrap()
         .set_pkce_verifier(PkceCodeVerifier::new(auth.pkce.1.clone()))
         .request_async(&auth.http_client)
         .await;
+
+    dbg!(token.unwrap().access_token().secret());
 
     // Signal the server to shutdown
     if let Some(tx) = shutdown_tx.lock().await.take() {
