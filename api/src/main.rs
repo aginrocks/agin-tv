@@ -6,6 +6,7 @@ mod mongo_id;
 mod routes;
 mod settings;
 mod state;
+mod tmdb_configuration;
 
 use std::{net::SocketAddr, ops::Deref, sync::Arc};
 

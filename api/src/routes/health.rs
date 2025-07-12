@@ -7,7 +7,7 @@ use super::Route;
 const PATH: &str = "/api/health";
 
 pub fn routes() -> Vec<Route> {
-    vec![(routes!(get_health), RouteProtectionLevel::Public)]
+    vec![(routes!(get_health), RouteProtectionLevel::Authenticated)]
 }
 
 /// Get health of the service (returns "ok")
