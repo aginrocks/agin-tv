@@ -10,6 +10,61 @@ use tmdb::{
     models,
 };
 
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MovieImagesResponseBackdropsInner {
+    #[serde(rename = "aspect_ratio", skip_serializing_if = "Option::is_none")]
+    pub aspect_ratio: Option<f64>,
+    #[serde(rename = "height", skip_serializing_if = "Option::is_none")]
+    pub height: Option<i32>,
+    #[serde(rename = "iso_639_1", skip_serializing_if = "Option::is_none")]
+    pub iso_639_1: Option<String>,
+    #[serde(rename = "file_path", skip_serializing_if = "Option::is_none")]
+    pub file_path: Option<String>,
+    #[serde(rename = "vote_average", skip_serializing_if = "Option::is_none")]
+    pub vote_average: Option<f64>,
+    #[serde(rename = "vote_count", skip_serializing_if = "Option::is_none")]
+    pub vote_count: Option<i32>,
+    #[serde(rename = "width", skip_serializing_if = "Option::is_none")]
+    pub width: Option<i32>,
+}
+
+impl MovieImagesResponseBackdropsInner {
+    pub fn new() -> Self {
+        Self {
+            aspect_ratio: None,
+            height: None,
+            iso_639_1: None,
+            file_path: None,
+            vote_average: None,
+            vote_count: None,
+            width: None,
+        }
+    }
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MovieImagesResponse {
+    #[serde(rename = "backdrops", skip_serializing_if = "Option::is_none")]
+    pub backdrops: Option<Vec<MovieImagesResponseBackdropsInner>>,
+    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<i32>,
+    #[serde(rename = "logos", skip_serializing_if = "Option::is_none")]
+    pub logos: Option<Vec<models::MovieImages200ResponseLogosInner>>,
+    #[serde(rename = "posters", skip_serializing_if = "Option::is_none")]
+    pub posters: Option<Vec<models::MovieImages200ResponsePostersInner>>,
+}
+
+impl MovieImagesResponse {
+    pub fn new() -> Self {
+        Self {
+            backdrops: None,
+            id: None,
+            logos: None,
+            posters: None,
+        }
+    }
+}
+
 #[allow(clippy::expect_used)]
 pub static TMDB_CONFIGURATION: LazyLock<Configuration> = LazyLock::new(|| Configuration {
     base_path: "https://api.themoviedb.org/".to_owned(),
@@ -89,7 +144,7 @@ pub struct MovieDetailsResponse {
     pub vote_average: Option<f64>,
     #[serde(rename = "vote_count", skip_serializing_if = "Option::is_none")]
     pub vote_count: Option<i32>,
-    pub images: Option<models::MovieImages200Response>,
+    pub images: Option<MovieImagesResponse>,
 }
 
 pub async fn movie_details(
@@ -122,7 +177,7 @@ pub async fn movie_details(
     if let Some(ref apikey) = configuration.api_key {
         let key = apikey.key.clone();
         let value = match apikey.prefix {
-            Some(ref prefix) => format!("{} {}", prefix, key),
+            Some(ref prefix) => format!("{prefix} {key}"),
             None => key,
         };
         req_builder = req_builder.header("Authorization", value);
@@ -143,15 +198,13 @@ pub async fn movie_details(
         let content = resp.text().await?;
         match content_type {
             ContentType::Json => serde_json::from_str(&content).map_err(Err::from),
-            ContentType::Text => {
-                return Err(Err::from(serde_json::Error::custom(
-                    "Received `text/plain` content type response that cannot be converted to `models::MovieDetails200Response`",
-                )));
-            }
+            ContentType::Text => Err(Err::from(serde_json::Error::custom(
+                "Received `text/plain` content type response that cannot be converted to `models::MovieDetails200Response`",
+            ))),
             ContentType::Unsupported(unknown_type) => {
-                return Err(Err::from(serde_json::Error::custom(format!(
+                Err(Err::from(serde_json::Error::custom(format!(
                     "Received `{unknown_type}` content type response that cannot be converted to `models::MovieDetails200Response`"
-                ))));
+                ))))
             }
         }
     } else {
