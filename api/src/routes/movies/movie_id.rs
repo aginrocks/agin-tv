@@ -117,7 +117,7 @@ pub async fn add_movie_to_database(id: String, state: AppState) -> Result<Movie>
         .await;
 
     match database_movie {
-        Ok(Some(database_movie)) => Ok(Movie::from_database(database_movie)),
+        Ok(Some(database_movie)) => Ok(database_movie),
         Err(e) => Err(eyre!("Failed to save movie to database, error: {e}")),
         _ => Err(eyre!("No movie returned")),
     }

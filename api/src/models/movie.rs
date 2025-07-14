@@ -228,23 +228,6 @@ impl Movie {
             }
         }
     }
-    pub fn from_database(movie: Movie) -> Self {
-        Self {
-            id: movie.id,
-            tmdb_id: movie.tmdb_id,
-            tv: movie.tv,
-            name: movie.name,
-            original_name: movie.original_name,
-            description: movie.description,
-            release_date: movie.release_date,
-            genres: movie.genres,
-            vertical_cover_url: movie.vertical_cover_url,
-            horizontal_cover_url: movie.horizontal_cover_url,
-            background_url: movie.background_url,
-            logo_url: movie.logo_url,
-            original_language: movie.original_language,
-        }
-    }
 }
 
 impl From<Movie> for Document {
