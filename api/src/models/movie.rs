@@ -1,4 +1,7 @@
-use crate::{models::Movie, tmdb_configuration::MovieDetailsResponse};
+use crate::{
+    models::Movie,
+    tmdb_configuration::{MovieDetailsResponse, TvDetailsResponse},
+};
 use chrono::Utc;
 use mongodb::bson::{self, Document, oid::ObjectId};
 use serde::Serialize;
@@ -66,9 +69,10 @@ impl<'de> serde::Deserialize<'de> for TMDBMovieId {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum TMDBMovieData {
     Movie(MovieDetailsResponse),
-    TV(TvSeriesDetails200Response),
+    TV(TvDetailsResponse),
 }
 
 impl Movie {
