@@ -76,8 +76,6 @@ pub async fn app_movie_to_database(id: i32, state: AppState) -> Result<Movie> {
     let movie = movie.unwrap();
     let movie = Movie::from_tmdb(TMDBMovieData::Movie(movie));
 
-    dbg!(&movie.tmdb_id.to_string());
-
     let database_movie = state
         .db
         .collection::<Movie>("movies")
