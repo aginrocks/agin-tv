@@ -1,5 +1,6 @@
 pub mod movie;
 
+use bson::Document;
 use movie::TMDBMovieId;
 
 use crate::mongo_id::{object_id_as_string_required, vec_oid_to_vec_string};
@@ -53,3 +54,19 @@ database_object!(
     genres: Vec<ObjectId>,
     original_language: Option<String>,
 });
+
+database_object!(Genre {
+    #[serde(rename = "_id", with = "object_id_as_string_required")]
+    #[schema(value_type = String)]
+    id: ObjectId,
+    tmdb_id: u32,
+    name: String,
+});
+
+impl From<Genre> for Document {
+    fn from(val: Genre) -> Self {
+        let mut doc = bson::to_document(&val).expect("Failed to convert Movie to Document");
+        doc.remove("_id");
+        doc
+    }
+}

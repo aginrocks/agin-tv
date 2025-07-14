@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 tmdb = { path = "../tmdb" }
 async-trait = "0.1.88"
-axum = "0.8.4"
+axum = { version = "0.8.4", features = ["tracing"] }
 axum-oidc = { git = "https://github.com/pfzetto/axum-oidc.git", branch = "pfzetto" }
 color-eyre = "0.6.4"
 config = "0.15.12"

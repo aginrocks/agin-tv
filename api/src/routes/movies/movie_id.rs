@@ -51,44 +51,57 @@ pub struct GetMovieParams {
 pub async fn get_movie(
     State(state): State<AppState>,
     Path(movie_id): Path<String>,
+    Query(params): Query<GetMovieParams>,
 ) -> AxumResult<Json<Movie>> {
     let movie = match params.refresh {
         Some(true) => add_movie_to_database(movie_id.clone(), state.clone()).await,
         _ => {
-    let movie = state
-        .db
-        .collection::<Movie>("movies")
-        .find_one(doc! {
-            "tmdb_id": &movie_id
-        })
-        .await?;
-
-    if let Some(movie) = movie {
-        Ok(Json(movie))
-    } else {
+            let movie = state
+                .db
+                .collection::<Movie>("movies")
+                .find_one(doc! {
+                    "tmdb_id": &movie_id
+                })
+                .await?;
+            if let Some(movie) = movie {
+                Ok(movie)
+            } else {
                 add_movie_to_database(movie_id, state).await
             }
         }
     };
 
-        match movie {
-            Ok(movie) => Ok(Json(movie)),
-            Err(e) => Err(AxumError::new(eyre!(
-                "Failed to fetch movie details: {}",
-                e
-            ))),
-        }
+    match movie {
+        Ok(movie) => Ok(Json(movie)),
+        Err(e) => Err(AxumError::new(eyre!(
+            "Failed to fetch movie details: {}",
+            e
+        ))),
     }
 }
 
 pub async fn add_movie_to_database(id: String, state: AppState) -> Result<Movie> {
     let movie: Movie = match id {
-        id if id.starts_with('m') => Movie::from_tmdb(TMDBMovieData::Movie(
-            movie_details(&TMDB_CONFIGURATION, id[1..].parse()?, Some("images"), None).await?,
-        )),
-        id if id.starts_with('t') => Movie::from_tmdb(TMDBMovieData::TV(
-            tv_series_details(&TMDB_CONFIGURATION, id[1..].parse()?, Some("images"), None).await?,
-        )),
+        id if id.starts_with('m') => {
+            Movie::from_tmdb(
+                TMDBMovieData::Movie(
+                    movie_details(&TMDB_CONFIGURATION, id[1..].parse()?, Some("images"), None)
+                        .await?,
+                ),
+                state.clone(),
+            )
+            .await?
+        }
+        id if id.starts_with('t') => {
+            Movie::from_tmdb(
+                TMDBMovieData::TV(
+                    tv_series_details(&TMDB_CONFIGURATION, id[1..].parse()?, Some("images"), None)
+                        .await?,
+                ),
+                state.clone(),
+            )
+            .await?
+        }
         _ => return Err(eyre!("Invalid movie ID format: {}", id)),
     };
 

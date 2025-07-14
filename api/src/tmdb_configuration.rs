@@ -302,7 +302,7 @@ pub struct TvDetailsResponse {
     #[serde(rename = "first_air_date", skip_serializing_if = "Option::is_none")]
     pub first_air_date: Option<String>,
     #[serde(rename = "genres", skip_serializing_if = "Option::is_none")]
-    pub genres: Option<Vec<models::TvSeriesDetails200ResponseGenresInner>>,
+    pub genres: Option<Vec<models::MovieDetails200ResponseGenresInner>>,
     #[serde(rename = "homepage", skip_serializing_if = "Option::is_none")]
     pub homepage: Option<String>,
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
