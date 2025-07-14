@@ -371,6 +371,7 @@ pub struct TvDetailsResponse {
     pub vote_average: Option<f64>,
     #[serde(rename = "vote_count", skip_serializing_if = "Option::is_none")]
     pub vote_count: Option<i32>,
+    pub images: Option<MovieImagesResponse>,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]

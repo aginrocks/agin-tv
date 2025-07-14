@@ -5,7 +5,6 @@ use crate::{
 use chrono::Utc;
 use mongodb::bson::{self, Document, oid::ObjectId};
 use serde::Serialize;
-use tmdb::models::TvSeriesDetails200Response;
 
 #[derive(Debug, Clone)]
 pub enum TMDBMovieId {
@@ -75,6 +74,42 @@ pub enum TMDBMovieData {
     TV(TvDetailsResponse),
 }
 
+macro_rules! extract_image_url {
+    ($images:expr, $field:ident, $original_language:expr) => {
+        $images
+            .clone()
+            .and_then(|images| images.$field)
+            .and_then(|items| {
+                if items.is_empty() {
+                    return None;
+                }
+
+                // Try to find English item first
+                if let Some(item) = items.iter().find(|l| l.iso_639_1 == Some("en".to_string())) {
+                    return item.file_path.clone();
+                }
+
+                // Try to find item in original language
+                if let Some(original_language) = $original_language
+                    && let Some(item) = items
+                        .iter()
+                        .find(|l| l.iso_639_1 == Some(original_language.to_string()))
+                {
+                    return item.file_path.clone();
+                }
+
+                // Try to find item with no language specified
+                if let Some(item) = items.iter().find(|l| l.iso_639_1.is_none()) {
+                    return item.file_path.clone();
+                }
+
+                // Fall back to first item
+                items.first().and_then(|item| item.file_path.clone())
+            })
+            .map(|path| format!("https://image.tmdb.org/t/p/original{path}"))
+    };
+}
+
 impl Movie {
     fn parse_date_string(date_str: &str) -> Option<chrono::DateTime<Utc>> {
         // Parse date string in format "YYYY-MM-DD"
@@ -96,71 +131,9 @@ impl Movie {
     pub fn from_tmdb(movie: TMDBMovieData) -> Self {
         match movie {
             TMDBMovieData::Movie(movie) => {
-                // Find the best logo
-                let logo_url = movie
-                    .images
-                    .clone()
-                    .and_then(|images| images.logos)
-                    .and_then(|logos| {
-                        if logos.is_empty() {
-                            return None;
-                        }
-
-                        // Try to find English logo first
-                        if let Some(logo) =
-                            logos.iter().find(|l| l.iso_639_1 == Some("en".to_string()))
-                        {
-                            return logo.file_path.clone();
-                        }
-
-                        // Try to find logo in original language
-                        if let Some(original_language) = &movie.original_language
-                            && let Some(logo) = logos
-                                .iter()
-                                .find(|l| l.iso_639_1 == Some(original_language.to_string()))
-                        {
-                            return logo.file_path.clone();
-                        }
-
-                        // Try to find logo with no language specified
-                        if let Some(logo) = logos.iter().find(|l| l.iso_639_1.is_none()) {
-                            return logo.file_path.clone();
-                        }
-
-                        // Fall back to first logo
-                        logos.first().and_then(|logo| logo.file_path.clone())
-                    })
-                    .map(|path| format!("https://image.tmdb.org/t/p/original{path}"));
-
-                // The same logic for horizontal cover
-                let horizontal_cover_url = movie
-                    .images
-                    .and_then(|images| images.backdrops)
-                    .and_then(|backdrops| {
-                        if backdrops.is_empty() {
-                            return None;
-                        }
-
-                        if let Some(backdrop) = backdrops
-                            .iter()
-                            .find(|l| l.iso_639_1 == Some("en".to_string()))
-                        {
-                            return backdrop.file_path.clone();
-                        }
-
-                        if let Some(original_language) = &movie.original_language
-                            && let Some(backdrop) = backdrops
-                                .iter()
-                                .find(|l| l.iso_639_1 == Some(original_language.to_string()))
-                        {
-                            return backdrop.file_path.clone();
-                        }
-
-                        backdrops
-                            .first()
-                            .and_then(|backdrop| backdrop.file_path.clone())
-                    })
-                    .map(|path| format!("https://image.tmdb.org/t/p/original{path}"));
+                let logo_url = extract_image_url!(movie.images, logos, &movie.original_language);
+                let horizontal_cover_url =
+                    extract_image_url!(movie.images, backdrops, &movie.original_language);
 
                 Self {
                     id: ObjectId::new(),
@@ -175,7 +148,7 @@ impl Movie {
                     genres: vec![],
                     vertical_cover_url: movie
                         .poster_path
-                        .map(|p| format!("https://image.tmdb.org/t/p/w500{p}")),
+                        .map(|p| format!("https://image.tmdb.org/t/p/original{p}")),
                     background_url: movie
                         .backdrop_path
                         .map(|p| format!("https://image.tmdb.org/t/p/original{p}")),
@@ -184,9 +157,33 @@ impl Movie {
                     original_language: movie.original_language,
                 }
             }
-            TMDBMovieData::TV(_tv) => Self {
-                ..Default::default()
-            },
+            TMDBMovieData::TV(tv) => {
+                let logo_url = extract_image_url!(tv.images, logos, &tv.original_language);
+                let horizontal_cover_url =
+                    extract_image_url!(tv.images, backdrops, &tv.original_language);
+
+                Self {
+                    id: ObjectId::new(),
+                    tmdb_id: TMDBMovieId::TVShow(tv.id.expect("XD").to_string()),
+                    tv: true,
+                    name: tv.name.unwrap_or_default(),
+                    original_name: tv.original_name,
+                    description: tv.overview.unwrap_or_default(),
+                    release_date: tv
+                        .first_air_date
+                        .and_then(|date| Self::parse_date_string(&date)),
+                    genres: vec![],
+                    vertical_cover_url: tv
+                        .poster_path
+                        .map(|p| format!("https://image.tmdb.org/t/p/original{p}")),
+                    background_url: tv
+                        .backdrop_path
+                        .map(|p| format!("https://image.tmdb.org/t/p/original{p}")),
+                    horizontal_cover_url,
+                    logo_url,
+                    original_language: tv.original_language,
+                }
+            }
         }
     }
     pub fn from_database(movie: Movie) -> Self {
