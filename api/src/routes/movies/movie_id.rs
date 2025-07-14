@@ -2,16 +2,19 @@ use axum::{
     Json,
     extract::{Path, Query, State},
 };
+use chrono::{DateTime, Utc};
 use color_eyre::{Result, eyre::eyre};
 use mongodb::bson::{Document, doc};
+use partial_struct::Partial;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use visible::StructFields;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     middlewares::require_auth::UnauthorizedError,
-    models::{Movie, movie::TMDBMovieData},
-    routes::empty_string_as_none,
-    routes::{Route, RouteProtectionLevel},
+    models::{Genre, Movie, movie::TMDBMovieData},
+    routes::{Route, RouteProtectionLevel, empty_string_as_none},
     state::AppState,
     tmdb_configuration::{TMDB_CONFIGURATION, movie_details, tv_series_details},
 };
@@ -35,6 +38,25 @@ pub struct GetMovieParams {
     refresh: Option<bool>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
+#[StructFields(pub)]
+pub struct MovieResponse {
+    _id: String,
+    tmdb_id: String,
+    name: String,
+    original_name: Option<String>,
+    description: String,
+    tv: bool,
+    #[schema(value_type = String)]
+    release_date: Option<DateTime<Utc>>,
+    vertical_cover_url: Option<String>,
+    horizontal_cover_url: Option<String>,
+    background_url: Option<String>,
+    logo_url: Option<String>,
+    genres: Vec<Genre>,
+    original_language: Option<String>,
+}
+
 /// Get a movie
 #[utoipa::path(
     method(get),
@@ -52,7 +74,7 @@ pub async fn get_movie(
     State(state): State<AppState>,
     Path(movie_id): Path<String>,
     Query(params): Query<GetMovieParams>,
-) -> AxumResult<Json<Movie>> {
+) -> AxumResult<Json<MovieResponse>> {
     let movie = match params.refresh {
         Some(true) => add_movie_to_database(movie_id.clone(), state.clone()).await,
         _ => {
@@ -66,13 +88,13 @@ pub async fn get_movie(
             if let Some(movie) = movie {
                 Ok(movie)
             } else {
-                add_movie_to_database(movie_id, state).await
+                add_movie_to_database(movie_id, state.clone()).await
             }
         }
     };
 
     match movie {
-        Ok(movie) => Ok(Json(movie)),
+        Ok(movie) => Ok(Json(movie.populate_genres(state.clone()).await?)),
         Err(e) => Err(AxumError::new(eyre!(
             "Failed to fetch movie details: {}",
             e

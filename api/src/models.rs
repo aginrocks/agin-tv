@@ -50,7 +50,7 @@ database_object!(
     background_url: Option<String>,
     logo_url: Option<String>,
     #[serde(with = "vec_oid_to_vec_string")]
-    #[schema(value_type = Vec<String>)]
+    #[schema(value_type = Vec<Genre>)]
     genres: Vec<ObjectId>,
     original_language: Option<String>,
 });

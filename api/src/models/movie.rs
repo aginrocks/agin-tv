@@ -1,11 +1,12 @@
 use crate::{
     models::{Genre, Movie},
-    state::{self, AppState},
+    routes::movies::movie_id::MovieResponse,
+    state::AppState,
     tmdb_configuration::{MovieDetailsResponse, TvDetailsResponse},
 };
 use bson::doc;
 use chrono::Utc;
-use color_eyre::eyre;
+use futures::stream::{StreamExt, TryStreamExt};
 use mongodb::bson::{self, Document, oid::ObjectId};
 use serde::Serialize;
 use tmdb::models::MovieDetails200ResponseGenresInner;
@@ -227,6 +228,33 @@ impl Movie {
                 })
             }
         }
+    }
+    pub async fn populate_genres(self, state: AppState) -> color_eyre::Result<MovieResponse> {
+        let genres = state
+            .db
+            .collection::<Genre>("genres")
+            .find(
+                doc! {"_id": {"$in": self.genres.iter().map(|g| g.to_owned()).collect::<Vec<_>>() }},
+            )
+            .await?;
+
+        let genres: Vec<Genre> = genres.try_collect().await?;
+
+        Ok(MovieResponse {
+            _id: self.id.to_string(),
+            tmdb_id: self.tmdb_id.to_string(),
+            name: self.name.clone(),
+            original_name: self.original_name.clone(),
+            description: self.description.clone(),
+            tv: self.tv,
+            release_date: self.release_date,
+            vertical_cover_url: self.vertical_cover_url.clone(),
+            horizontal_cover_url: self.horizontal_cover_url.clone().clone(),
+            background_url: self.background_url.clone().clone(),
+            logo_url: self.logo_url.clone().clone(),
+            genres,
+            original_language: self.original_language.clone(),
+        })
     }
 }
 

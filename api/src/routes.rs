@@ -5,7 +5,7 @@ use utoipa_axum::router::UtoipaMethodRouter;
 use crate::state::AppState;
 
 mod health;
-mod movies;
+pub mod movies;
 
 pub fn routes() -> Vec<Route> {
     [movies::routes(), health::routes()].concat()
