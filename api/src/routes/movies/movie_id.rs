@@ -1,19 +1,18 @@
 use axum::{
     Json,
-    extract::{Path, Query, RawPathParams, State},
+    extract::{Path, State},
 };
 use color_eyre::{Result, eyre::eyre};
 use mongodb::bson::{Document, doc};
 use serde::{Deserialize, Serialize};
-use tmdb::apis::default_api::movie_details;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     middlewares::require_auth::UnauthorizedError,
-    models::{Movie, TMDBMovieData},
+    models::{Movie, movie::TMDBMovieData},
     routes::{Route, RouteProtectionLevel},
     state::AppState,
-    tmdb_configuration::TMDB_CONFIGURATION,
+    tmdb_configuration::{TMDB_CONFIGURATION, movie_details},
 };
 
 use utoipa_axum::routes;
@@ -84,15 +83,14 @@ pub async fn app_movie_to_database(id: i32, state: AppState) -> Result<Movie> {
         .collection::<Movie>("movies")
         .find_one_and_update(
             doc! {"tmdb_id": movie.tmdb_id.to_string()},
-            // doc! {"$set": Into::<Document>::into(movie.clone())},
-            doc! {"$set": {"name": "test"}},
+            doc! {"$set": Into::<Document>::into(movie.clone())},
         )
         .upsert(true)
         .return_document(mongodb::options::ReturnDocument::After)
         .await;
 
     match database_movie {
-        Ok(Some(database_movie)) => Ok(database_movie),
+        Ok(Some(database_movie)) => Ok(Movie::from_database(database_movie)),
         Err(e) => Err(eyre!("Failed to save movie to database, error: {e}")),
         _ => Err(eyre!("No movie returned")),
     }
