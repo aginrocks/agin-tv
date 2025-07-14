@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
 };
 use color_eyre::{Result, eyre::eyre};
 use mongodb::bson::{Document, doc};
@@ -10,6 +10,7 @@ use crate::{
     axum_error::{AxumError, AxumResult},
     middlewares::require_auth::UnauthorizedError,
     models::{Movie, movie::TMDBMovieData},
+    routes::empty_string_as_none,
     routes::{Route, RouteProtectionLevel},
     state::AppState,
     tmdb_configuration::{TMDB_CONFIGURATION, movie_details, tv_series_details},
@@ -28,6 +29,12 @@ pub struct GetMovieQuery {
     movie_id: i32,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GetMovieParams {
+    #[serde(default, deserialize_with = "empty_string_as_none")]
+    refresh: Option<bool>,
+}
+
 /// Get a movie
 #[utoipa::path(
     method(get),
@@ -36,12 +43,18 @@ pub struct GetMovieQuery {
         (status = OK, description = "Success", body = Movie),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json")
     ),
+    params(
+        ("refresh" = bool, Path, description = "Refresh movie details from TMDB", example = "false", ),
+    ),
     tag = "Movies"
 )]
 pub async fn get_movie(
     State(state): State<AppState>,
     Path(movie_id): Path<String>,
 ) -> AxumResult<Json<Movie>> {
+    let movie = match params.refresh {
+        Some(true) => add_movie_to_database(movie_id.clone(), state.clone()).await,
+        _ => {
     let movie = state
         .db
         .collection::<Movie>("movies")
@@ -53,7 +66,10 @@ pub async fn get_movie(
     if let Some(movie) = movie {
         Ok(Json(movie))
     } else {
-        let movie = add_movie_to_database(movie_id, state).await;
+                add_movie_to_database(movie_id, state).await
+            }
+        }
+    };
 
         match movie {
             Ok(movie) => Ok(Json(movie)),
