@@ -4,11 +4,12 @@ use utoipa_axum::router::UtoipaMethodRouter;
 
 use crate::state::AppState;
 
+mod auth;
 mod health;
 pub mod movies;
 
 pub fn routes() -> Vec<Route> {
-    [movies::routes(), health::routes()].concat()
+    [movies::routes(), health::routes(), auth::routes()].concat()
 }
 
 #[derive(Clone)]

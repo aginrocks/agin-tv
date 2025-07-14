@@ -6,7 +6,7 @@ use crate::{
 };
 use bson::doc;
 use chrono::Utc;
-use futures::stream::{StreamExt, TryStreamExt};
+use futures::stream::TryStreamExt;
 use mongodb::bson::{self, Document, oid::ObjectId};
 use serde::Serialize;
 use tmdb::models::MovieDetails200ResponseGenresInner;
