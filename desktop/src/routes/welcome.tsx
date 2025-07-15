@@ -3,24 +3,41 @@ import { Button } from "@components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconArrowRight } from "@tabler/icons-react";
 import { APP_NAME, APP_TAGLINE } from "@lib/constants/names";
+import { invoke } from "@tauri-apps/api/core";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
+import WelcomeComponent from "@components/welcome";
+import LoggingInComponent from "@components/welcome/logging-in";
 
 export const Route = createFileRoute("/welcome")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  //   const modals = useModals();
+  const [stage, setStage] = useState<"welcome" | "logging">("welcome");
+
   return (
     <SplashSection>
-      <div className="font-semibold text-2xl mb-2">{APP_NAME}</div>
-      <div className="text-sm text-muted-foreground w-2xl text-center">
-        {APP_TAGLINE}
-      </div>
-
-      <Button className="mt-4">
-        Get Started
-        <IconArrowRight />
-      </Button>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          className="flex flex-col justify-center items-center gap-4"
+          key={stage}
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+        >
+          {stage === "welcome" ? (
+            <WelcomeComponent
+              onClick={() => {
+                invoke("authenticate");
+                setStage("logging");
+              }}
+            />
+          ) : (
+            <LoggingInComponent />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </SplashSection>
   );
 }
