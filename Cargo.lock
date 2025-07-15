@@ -1145,6 +1145,7 @@ name = "desktop"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "color-eyre",
  "dotenvy",
  "open",
  "openidconnect",
@@ -1158,6 +1159,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-shell",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

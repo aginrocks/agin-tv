@@ -1,4 +1,5 @@
 mod commands;
+mod helpers;
 mod oidc;
 mod state;
 
@@ -7,6 +8,7 @@ use std::{
     sync::Arc,
 };
 
+use color_eyre::Result;
 use openidconnect::{CsrfToken, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl};
 
 use crate::{oidc::create_client, state::AppState};
@@ -18,7 +20,7 @@ fn greet(name: &str) -> String {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub fn run() -> Result<()> {
     let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
     let socket_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9133); // or any other port
     let redirect_url = format!("http://{socket_addr}/callback").to_string();
@@ -42,6 +44,6 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .invoke_handler(tauri::generate_handler![greet])
         .invoke_handler(tauri::generate_handler![commands::authenticate,])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!())?;
+    Ok(())
 }

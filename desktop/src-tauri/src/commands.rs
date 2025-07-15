@@ -1,30 +1,37 @@
-use openidconnect::{core::CoreAuthenticationFlow, Nonce, Scope};
+use serde::Deserialize;
 use tauri::Manager;
 
-use crate::{oidc::run_server, state::AppState};
+use crate::{helpers::build_url, state::AppState};
+
+#[derive(Deserialize)]
+struct StartSessionResponse {
+    pub auth_url: String,
+}
 
 #[tauri::command]
 pub async fn authenticate(handle: tauri::AppHandle) {
-    let auth = handle.state::<AppState>();
+    let state = handle.state::<AppState>();
 
-    let csrf_token = auth.csrf_token.clone();
+    let http_client = state.http_client.clone();
 
-    let (auth_url, _, _) = auth
-        .client
-        .authorize_url(
-            CoreAuthenticationFlow::AuthorizationCode,
-            || csrf_token,
-            Nonce::new_random,
-        )
-        // Set the desired scopes.
-        .add_scope(Scope::new("email".to_string()))
-        .add_scope(Scope::new("profile".to_string()))
-        // Set the PKCE code challenge.
-        .set_pkce_challenge(auth.pkce.0.clone())
-        .url();
+    let url = match build_url("/auth/start_session") {
+        Ok(url) => url,
+        Err(e) => {
+            eprintln!("Failed to build URL: {e}");
+            return;
+        }
+    };
 
-    let _server_handle =
-        tauri::async_runtime::spawn(async move { run_server(handle.clone()).await });
+    dbg!(&url.to_string());
 
-    open::that(auth_url.to_string()).unwrap();
+    let res = http_client
+        .post(url)
+        .send()
+        .await
+        .expect("Failed to start session")
+        .json::<StartSessionResponse>()
+        .await
+        .expect("Failed to parse response");
+
+    open::that(res.auth_url).unwrap();
 }

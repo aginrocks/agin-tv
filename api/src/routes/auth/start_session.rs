@@ -26,7 +26,7 @@ struct StartSessionResponse {
 
 /// Request link to identity provider
 #[utoipa::path(
-    method(get),
+    method(post),
     path = PATH,
     responses(
         (status = OK, description = "Success", body = StartSessionResponse)

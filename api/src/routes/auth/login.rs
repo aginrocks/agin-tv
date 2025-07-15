@@ -29,7 +29,7 @@ struct CallbackQuery {
 
 /// Login endpoint that handles the OIDC login flow
 #[utoipa::path(
-    method(get),
+    method(post),
     path = PATH,
     responses(
         (status = OK, description = "Success", body = str)
