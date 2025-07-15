@@ -28,6 +28,10 @@ impl AxumError {
         }
     }
 
+    pub fn internal_server_error(report: Report) -> Self {
+        Self::with_status(report, StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
     pub fn bad_request(report: Report) -> Self {
         Self::with_status(report, StatusCode::BAD_REQUEST)
     }

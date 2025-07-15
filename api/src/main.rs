@@ -8,7 +8,11 @@ mod settings;
 mod state;
 mod tmdb_configuration;
 
-use std::{net::SocketAddr, ops::Deref, sync::Arc};
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    ops::Deref,
+    sync::Arc,
+};
 
 use axum::{
     Router, error_handling::HandleErrorLayer, http::StatusCode, middleware, response::IntoResponse,
@@ -19,6 +23,10 @@ use axum_oidc::{
 };
 use color_eyre::Result;
 use color_eyre::eyre::WrapErr;
+use openidconnect::{
+    Client, ClientId, ClientSecret, CsrfToken, IssuerUrl, PkceCodeChallenge, PkceCodeVerifier,
+    RedirectUrl, core::CoreProviderMetadata,
+};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
@@ -71,10 +79,13 @@ async fn main() -> Result<()> {
 
     let http_client = init_reqwest().wrap_err("failed to initialize HTTP client")?;
 
+    let oidc_client = Arc::new(create_oidc_client(settings.clone()).await?);
+
     let app_state = AppState {
         db,
         http_client,
         settings: settings.clone(),
+        oidc_client,
     };
 
     let session_layer = init_session_store(&settings).await?;
@@ -94,6 +105,30 @@ async fn main() -> Result<()> {
         .wrap_err("failed to run server")?;
 
     Ok(())
+}
+
+async fn create_oidc_client(settings: Arc<Settings>) -> Result<state::OidcClient> {
+    let client_id = ClientId::new(settings.oidc.client_id.to_string());
+
+    let client_secret = settings.oidc.client_secret.clone();
+
+    let http_client = openidconnect::reqwest::ClientBuilder::new()
+        // Following redirects opens the client up to SSRF vulnerabilities.
+        .redirect(openidconnect::reqwest::redirect::Policy::none())
+        .build()
+        .expect("Client should build");
+
+    let provider_metadata = CoreProviderMetadata::discover_async(
+        IssuerUrl::new(settings.oidc.issuer.to_string())?,
+        &http_client,
+    )
+    .await?;
+
+    Ok(openidconnect::Client::from_provider_metadata(
+        provider_metadata,
+        client_id,
+        client_secret,
+    ))
 }
 
 fn init_tracing() -> Result<()> {
