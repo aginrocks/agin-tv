@@ -1,7 +1,11 @@
-use color_eyre::Result;
 use reqwest::Url;
 use std::env;
 
-pub fn build_url(endpoint: &str) -> Result<Url> {
-    Ok(Url::parse(&env::var("API_URL")?)?.join(&format!("/api{endpoint}"))?)
+pub fn build_url(endpoint: &str) -> Result<Url, String> {
+    let api_url = env::var("API_URL").map_err(|e| e.to_string())?;
+    let base_url = Url::parse(&api_url).map_err(|e| e.to_string())?;
+    let full_url = base_url
+        .join(&format!("/api{endpoint}"))
+        .map_err(|e| e.to_string())?;
+    Ok(full_url)
 }

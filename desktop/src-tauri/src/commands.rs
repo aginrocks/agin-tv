@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use tauri::Manager;
 
-use crate::{helpers::build_url, state::AppState};
+use crate::{helpers::build_url, oidc::run_server, state::AppState};
 
 #[derive(Deserialize)]
 struct StartSessionResponse {
@@ -9,29 +9,35 @@ struct StartSessionResponse {
 }
 
 #[tauri::command]
-pub async fn authenticate(handle: tauri::AppHandle) {
+pub async fn authenticate(handle: tauri::AppHandle) -> Result<Option<String>, String> {
     let state = handle.state::<AppState>();
 
-    let http_client = state.http_client.clone();
+    let url = build_url("/auth/start_session")?;
 
-    let url = match build_url("/auth/start_session") {
-        Ok(url) => url,
-        Err(e) => {
-            eprintln!("Failed to build URL: {e}");
-            return;
-        }
-    };
-
-    dbg!(&url.to_string());
-
-    let res = http_client
+    let res = state
+        .http_client
         .post(url)
         .send()
         .await
-        .expect("Failed to start session")
+        .expect("Failed to start session");
+
+    let cookie = res
+        .cookies()
+        .find(|cookie| cookie.name() == "id")
+        .map(|c| c.value().to_string());
+
+    let json = res
         .json::<StartSessionResponse>()
         .await
         .expect("Failed to parse response");
 
-    open::that(res.auth_url).unwrap();
+    let server_handle =
+        tauri::async_runtime::spawn(async move { run_server(handle.clone()).await });
+
+    open::that(json.auth_url).unwrap();
+
+    match server_handle.await.expect("Failed to run server") {
+        Ok(_) => Ok(cookie),
+        Err(e) => Err(e.to_string()),
+    }
 }

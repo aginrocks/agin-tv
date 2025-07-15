@@ -80,7 +80,9 @@ function App() {
       <div className="auth-section">
         {!isLoggedIn ? (
           <button
-            onClick={() => invoke("authenticate")}
+            onClick={async () =>
+              console.log(await invoke<string>("authenticate"))
+            }
             disabled={isLoggingIn}
             className="google-login-btn"
             style={{

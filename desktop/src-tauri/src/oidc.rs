@@ -1,82 +1,53 @@
-use std::{env, sync::Arc};
+use std::str::FromStr;
+use std::sync::Arc;
 
-use axum::{extract::Query, response::IntoResponse, routing::get, Extension, Router};
-use openidconnect::core::CoreProviderMetadata;
-use openidconnect::{AuthorizationCode, CsrfToken, OAuth2TokenResponse, PkceCodeVerifier};
-use openidconnect::{Client, ClientId, ClientSecret, IssuerUrl, RedirectUrl};
-use serde::Deserialize;
-use tauri::Manager;
+use axum::extract::RawQuery;
+use axum::{response::IntoResponse, routing::get, Extension, Router};
+use reqwest::cookie::{Cookie, CookieStore};
+use tauri::{Manager, Url};
 use tokio::sync::{oneshot, Mutex};
 
-use crate::state::{AppState, OidcClient};
-
-pub fn create_client(redirect_url: RedirectUrl) -> OidcClient {
-    let client_id = ClientId::new(env::var("CLIENT_ID").expect("No cliend id"));
-
-    let client_secret = match env::var("CLIENT_SECRET") {
-        Ok(client_secret) => Some(ClientSecret::new(client_secret)),
-        Err(_) => None,
-    };
-
-    let http_client = openidconnect::reqwest::blocking::ClientBuilder::new()
-        // Following redirects opens the client up to SSRF vulnerabilities.
-        .redirect(openidconnect::reqwest::redirect::Policy::none())
-        .build()
-        .expect("Client should build");
-
-    let provider_metadata = CoreProviderMetadata::discover(
-        &IssuerUrl::new(env::var("ISSUER_URL").expect("No issuer url"))
-            .expect("Invalid ISSUER_URL!"),
-        &http_client,
-    )
-    .expect("Failed to discover provider metadata");
-
-    Client::from_provider_metadata(provider_metadata, client_id, client_secret)
-        .set_redirect_uri(redirect_url)
-}
-
-#[derive(Deserialize)]
-struct CallbackQuery {
-    code: AuthorizationCode,
-    state: CsrfToken,
-}
+use crate::helpers::build_url;
+use crate::state::AppState;
 
 async fn authorize(
-    query: Query<CallbackQuery>,
+    RawQuery(query): RawQuery,
     Extension(handle): Extension<tauri::AppHandle>,
     Extension(shutdown_tx): Extension<Arc<Mutex<Option<oneshot::Sender<()>>>>>,
 ) -> impl IntoResponse {
-    let auth = handle.state::<AppState>();
+    let state = handle.state::<AppState>();
 
-    if query.state.secret() != auth.csrf_token.secret() {
-        println!("Suspected Man in the Middle attack!");
-        return "authorized".to_string().into_response(); // never let them know your next move
+    let mut url = match build_url("/auth/login") {
+        Ok(url) => url,
+        Err(e) => {
+            eprintln!("Failed to build URL: {e}");
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to build URL",
+            )
+                .into_response();
+        }
+    };
+
+    if let Some(query) = query.as_deref() {
+        url.set_query(Some(query));
     }
 
-    let exchange = auth.client.exchange_code(query.code.clone());
+    let res = state
+        .http_client
+        .post(url.as_str())
+        .send()
+        .await
+        .expect("Failed to send request");
 
-    if let Err(e) = exchange {
-        eprintln!("Failed to exchange code: {e}");
-        return (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to exchange code",
-        )
-            .into_response();
-    }
-    let token = exchange
-        .unwrap()
-        .set_pkce_verifier(PkceCodeVerifier::new(auth.pkce.1.clone()))
-        .request_async(&auth.http_client)
-        .await;
+    dbg!(res);
 
-    dbg!(token.unwrap().access_token().secret());
+    // state.http_client.cookie_store().unwrap().clear();
 
-    // Signal the server to shutdown
     if let Some(tx) = shutdown_tx.lock().await.take() {
         let _ = tx.send(());
     }
 
-    // Serve the oauth.html file as the response
     let html_path = std::path::Path::new("resources/oauth.html");
     match tokio::fs::read_to_string(html_path).await {
         Ok(contents) => axum::response::Html(contents).into_response(),
@@ -88,7 +59,7 @@ async fn authorize(
     }
 }
 
-pub async fn run_server(handle: tauri::AppHandle) -> Result<(), std::io::Error> {
+pub async fn run_server(handle: tauri::AppHandle) -> Result<&'static str, std::io::Error> {
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
     let shutdown_tx = Arc::new(Mutex::new(Some(shutdown_tx)));
 
@@ -105,5 +76,7 @@ pub async fn run_server(handle: tauri::AppHandle) -> Result<(), std::io::Error> 
         .with_graceful_shutdown(async {
             shutdown_rx.await.ok();
         })
-        .await
+        .await?;
+
+    Ok("XD")
 }

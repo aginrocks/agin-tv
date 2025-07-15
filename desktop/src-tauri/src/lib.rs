@@ -9,9 +9,8 @@ use std::{
 };
 
 use color_eyre::Result;
-use openidconnect::{CsrfToken, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl};
 
-use crate::{oidc::create_client, state::AppState};
+use crate::state::AppState;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -21,18 +20,18 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
-    let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
-    let socket_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9133); // or any other port
-    let redirect_url = format!("http://{socket_addr}/callback").to_string();
+    let socket_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 4321); // or any other port
+
+    let cookie_store = Arc::new(reqwest::cookie::Jar::default());
+
+    let http_client = reqwest::Client::builder()
+        .user_agent("agin-tv/desktop")
+        .cookie_provider(cookie_store.clone())
+        .build()?;
 
     let state = AppState {
-        http_client: reqwest::Client::new(),
-        csrf_token: CsrfToken::new_random(),
-        pkce: Arc::new((
-            pkce_code_challenge,
-            PkceCodeVerifier::secret(&pkce_code_verifier).to_string(),
-        )),
-        client: Arc::new(create_client(RedirectUrl::new(redirect_url).unwrap())),
+        http_client,
+        cookie_store,
         socket_addr,
     };
 
