@@ -18,7 +18,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 strum = { version = "0.27.1", features = ["derive"] }
 tokio = { version = "1.46.1", features = ["full"] }
 tower = { version = "0.5.2", features = ["full", "tokio", "tracing"] }
-tower-http = { version = "0.6.2", features = ["cors"] }
+tower-http = { version = "0.6.2", features = ["cors", "tracing"] }
 tracing = "0.1.41"
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.19", features = [

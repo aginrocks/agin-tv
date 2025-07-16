@@ -12,6 +12,11 @@ struct StartSessionResponse {
 pub async fn authenticate(handle: tauri::AppHandle) -> Result<Option<String>, String> {
     let state = handle.state::<AppState>();
 
+    if let Some(abort_handle) = state.abort_handle.write().await.take() {
+        dbg!("aborting previous session");
+        abort_handle.abort();
+    }
+
     let url = build_url("/auth/start_session")?;
 
     let res = state
@@ -31,13 +36,31 @@ pub async fn authenticate(handle: tauri::AppHandle) -> Result<Option<String>, St
         .await
         .expect("Failed to parse response");
 
-    let server_handle =
-        tauri::async_runtime::spawn(async move { run_server(handle.clone()).await });
+    let server_handle = tokio::spawn(run_server(handle.clone()));
 
+    let abort_handle = server_handle.abort_handle();
+
+    {
+        let mut state_handle = state.abort_handle.write().await;
+        *state_handle = Some(abort_handle);
+    }
+
+    //TODO: check if browser is opened
     open::that(json.auth_url).unwrap();
 
-    match server_handle.await.expect("Failed to run server") {
+    match server_handle.await {
         Ok(_) => Ok(cookie),
         Err(e) => Err(e.to_string()),
     }
+}
+
+#[tauri::command]
+pub async fn cancel_authentication(handle: tauri::AppHandle) -> Result<(), String> {
+    let state = handle.state::<AppState>();
+
+    if let Some(abort_handle) = state.abort_handle.write().await.take() {
+        abort_handle.abort();
+    }
+
+    Ok(())
 }

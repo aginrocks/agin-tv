@@ -33,6 +33,7 @@ pub fn run() -> Result<()> {
         http_client,
         cookie_store,
         socket_addr,
+        abort_handle: Arc::new(tokio::sync::RwLock::new(None)),
     };
 
     tauri::Builder::default()
@@ -41,8 +42,11 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_http::init())
-        .invoke_handler(tauri::generate_handler![greet])
-        .invoke_handler(tauri::generate_handler![commands::authenticate,])
+        .invoke_handler(tauri::generate_handler![
+            commands::authenticate,
+            commands::cancel_authentication,
+            greet,
+        ])
         .run(tauri::generate_context!())?;
     Ok(())
 }
