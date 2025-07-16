@@ -1,7 +1,6 @@
 import { Button } from "@components/ui/button";
 import { APP_NAME, APP_TAGLINE } from "@lib/constants/names";
 import { IconArrowRight } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api/core";
 
 interface WelcomeComponentProps {
   onClick: () => void;

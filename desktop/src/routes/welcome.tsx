@@ -28,13 +28,21 @@ function RouteComponent() {
         >
           {stage === "welcome" ? (
             <WelcomeComponent
-              onClick={() => {
-                invoke("authenticate");
+              onClick={async () => {
                 setStage("logging");
+                await invoke("authenticate");
               }}
             />
           ) : (
-            <LoggingInComponent />
+            <LoggingInComponent
+              onRepeat={async () => {
+                await invoke("authenticate");
+              }}
+              onCancel={async () => {
+                setStage("welcome");
+                await invoke("cancel_authentication");
+              }}
+            />
           )}
         </motion.div>
       </AnimatePresence>
