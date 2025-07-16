@@ -6,10 +6,17 @@ use crate::state::AppState;
 
 mod auth;
 mod health;
+mod home;
 pub mod movies;
 
 pub fn routes() -> Vec<Route> {
-    [movies::routes(), health::routes(), auth::routes()].concat()
+    [
+        movies::routes(),
+        health::routes(),
+        auth::routes(),
+        home::routes(),
+    ]
+    .concat()
 }
 
 #[derive(Clone)]

@@ -24,7 +24,7 @@ use utoipa_axum::routes;
 const PATH: &str = "/api/movies/{movie_id}";
 
 pub fn routes() -> Vec<Route> {
-    vec![(routes!(get_movie), RouteProtectionLevel::Public)]
+    vec![(routes!(get_movie), RouteProtectionLevel::Authenticated)]
 }
 
 #[derive(Serialize, Deserialize, Debug)]

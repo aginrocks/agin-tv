@@ -8,11 +8,7 @@ mod settings;
 mod state;
 mod tmdb_configuration;
 
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    ops::Deref,
-    sync::Arc,
-};
+use std::{net::SocketAddr, ops::Deref, sync::Arc};
 
 use axum::{
     Router, error_handling::HandleErrorLayer, http::StatusCode, middleware, response::IntoResponse,
@@ -23,10 +19,7 @@ use axum_oidc::{
 };
 use color_eyre::Result;
 use color_eyre::eyre::WrapErr;
-use openidconnect::{
-    Client, ClientId, ClientSecret, CsrfToken, IssuerUrl, PkceCodeChallenge, PkceCodeVerifier,
-    RedirectUrl, core::CoreProviderMetadata,
-};
+use openidconnect::{ClientId, IssuerUrl, core::CoreProviderMetadata};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
@@ -219,6 +212,7 @@ async fn init_axum(
         .into_iter()
         .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Redirect))
         .fold(redirect_router, |router, (route, _)| router.routes(route))
+        // .layer(session_layer.clone())
         .layer(oidc_login_service.clone());
 
     // Add protected routes which don't redirect but require authentication
@@ -238,7 +232,7 @@ async fn init_axum(
 
     let oidc_handler_router: OpenApiRouter<AppState> =
         OpenApiRouter::with_openapi(ApiDoc::openapi())
-            // .layer(session_layer.clone()) // Apply session layer first
+            .layer(session_layer.clone()) // Apply session layer first
             .layer(oidc_login_service)
             .route(
                 "/oidc",

@@ -12,6 +12,7 @@ use mongodb::{
     options::ReturnDocument,
 };
 use serde::{Deserialize, Serialize};
+use tower_sessions::Session;
 use utoipa::ToSchema;
 
 use crate::{
@@ -38,42 +39,52 @@ impl Deref for UserId {
 
 /// Middleware that ensures the user is authenticated
 pub async fn require_auth(
-    claims: Option<OidcClaims<GroupClaims>>,
     State(state): State<AppState>,
+    session: Session,
+    claims: Option<OidcClaims<GroupClaims>>,
     mut request: Request,
     next: Next,
 ) -> AxumResult<Response> {
-    let claims = claims.ok_or_else(|| AxumError::unauthorized(eyre::eyre!("Unauthorized")))?;
+    let token = session
+        .get::<String>("access_token")
+        .await
+        .map_err(|_| AxumError::unauthorized(eyre::eyre!("Unauthorized")))?;
 
-    let sub = claims.subject().to_string();
-    let name = claims
-        .name()
-        .wrap_err("Name is required")?
-        .get(None)
-        .wrap_err("Name is required")?
-        .to_string();
-    let email = claims.email().wrap_err("Email is required")?.to_string();
+    if token.is_none() {
+        return Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")));
+    }
 
-    let user = state
-        .db
-        .collection::<User>("users")
-        .find_one_and_update(
-            doc! { "sub": &sub },
-            doc! {
-                "$set": {
-                    "subject": sub,
-                    "name": name,
-                    "email": email,
-                }
-            },
-        )
-        .upsert(true)
-        .return_document(ReturnDocument::After)
-        .await?
-        .wrap_err("User not found (wtf?")?;
+    // let claims = claims.ok_or_else(|| AxumError::unauthorized(eyre::eyre!("Unauthorized")))?;
 
-    request.extensions_mut().insert(UserData(user.clone()));
-    request.extensions_mut().insert(UserId(user.id));
+    // let sub = claims.subject().to_string();
+    // let name = claims
+    //     .name()
+    //     .wrap_err("Name is required")?
+    //     .get(None)
+    //     .wrap_err("Name is required")?
+    //     .to_string();
+    // let email = claims.email().wrap_err("Email is required")?.to_string();
+
+    // let user = state
+    //     .db
+    //     .collection::<User>("users")
+    //     .find_one_and_update(
+    //         doc! { "sub": &sub },
+    //         doc! {
+    //             "$set": {
+    //                 "subject": sub,
+    //                 "name": name,
+    //                 "email": email,
+    //             }
+    //         },
+    //     )
+    //     .upsert(true)
+    //     .return_document(ReturnDocument::After)
+    //     .await?
+    //     .wrap_err("User not found (wtf?")?;
+
+    // request.extensions_mut().insert(UserData(user.clone()));
+    // request.extensions_mut().insert(UserId(user.id));
 
     Ok(next.run(request).await)
 }
