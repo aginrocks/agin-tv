@@ -11,7 +11,11 @@ mod tmdb_configuration;
 use std::{net::SocketAddr, ops::Deref, sync::Arc};
 
 use axum::{
-    Router, error_handling::HandleErrorLayer, http::StatusCode, middleware, response::IntoResponse,
+    Router,
+    error_handling::HandleErrorLayer,
+    http::StatusCode,
+    middleware::{self, from_fn},
+    response::IntoResponse,
     routing::any,
 };
 use axum_oidc::{
@@ -38,7 +42,7 @@ use utoipa_scalar::{Scalar, Servable as _};
 
 use crate::{
     database::{init_database, init_session_store},
-    middlewares::require_auth::require_auth,
+    middlewares::{require_auth::require_auth, session_bearer_override},
     routes::RouteProtectionLevel,
     settings::Settings,
     state::AppState,
@@ -212,7 +216,6 @@ async fn init_axum(
         .into_iter()
         .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Redirect))
         .fold(redirect_router, |router, (route, _)| router.routes(route))
-        // .layer(session_layer.clone())
         .layer(oidc_login_service.clone());
 
     // Add protected routes which don't redirect but require authentication
@@ -222,7 +225,6 @@ async fn init_axum(
         .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Authenticated))
         .fold(auth_router, |router, (route, _)| router.routes(route))
         .layer(middleware::from_fn_with_state(state.clone(), require_auth));
-
     // Combine the routers
     let router = public_router.merge(redirect_router);
 
@@ -232,7 +234,7 @@ async fn init_axum(
 
     let oidc_handler_router: OpenApiRouter<AppState> =
         OpenApiRouter::with_openapi(ApiDoc::openapi())
-            .layer(session_layer.clone()) // Apply session layer first
+            // .layer(session_layer.clone()) // Apply session layer first
             .layer(oidc_login_service)
             .route(
                 "/oidc",
@@ -272,6 +274,24 @@ async fn init_axum(
     let router = router
         .layer(oidc_auth_service)
         .layer(session_layer)
+        .layer(from_fn(session_bearer_override::session_bearer_override))
+        .layer(
+            tower_http::cors::CorsLayer::new()
+                .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
+                .allow_methods([
+                    axum::http::Method::GET,
+                    axum::http::Method::POST,
+                    axum::http::Method::OPTIONS,
+                    axum::http::Method::PUT,
+                    axum::http::Method::DELETE,
+                ])
+                .allow_headers([
+                    axum::http::header::AUTHORIZATION,
+                    axum::http::header::CONTENT_TYPE,
+                    axum::http::header::COOKIE,
+                ])
+                .allow_credentials(true),
+        )
         .fallback(|| async { (StatusCode::NOT_FOUND, "Not found").into_response() });
 
     Ok(router)
