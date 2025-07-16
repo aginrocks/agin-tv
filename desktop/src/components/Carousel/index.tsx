@@ -73,6 +73,8 @@ export default function Carousel({ slides }: CarouselProps) {
   }
 
   useEffect(() => {
+    console.log(slides);
+
     if (slides == undefined) return;
     timeoutRef.current = setInterval(() => {
       slideChange(true);
@@ -89,19 +91,17 @@ export default function Carousel({ slides }: CarouselProps) {
     <div className="aspect-[16/7.5]  w-full overflow-hidden relative">
       <div className="w-full h-full relative">
         <img
-          className={imageStyle({ animate: false })}
-          src="https://sm.ign.com/t/ign_pl/screenshot/default/bocchi-blogroll-1672352846343_3u73.1280.jpg"
+          className={imageStyle({ animate })}
+          src={slides?.[activeSlide]?.background_url ?? undefined}
         />
         <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-t from-background to-transparent" />
         <div className="absolute left-0 right-0 bottom-0 flex justify-between items-end">
-          <div className={slideDescription({})}>
-            <div className="text-5xl font-bold">Bocchi the Rock</div>
+          <div className={slideDescription({ animate })}>
+            <div className="text-5xl font-bold">
+              {slides?.[activeSlide]?.name}
+            </div>
             <div className="text-lg text-muted-foreground line-clamp-5">
-              Hitori Gotoh, a shy, awkward, and lonely high school student
-              dreams of being in a band despite her doubts and worries, but when
-              she is recruited to be the guitarist of a group looking to make it
-              big, she realises her dream may be able to be fulfilled and come
-              true.
+              {slides?.[activeSlide]?.description}
             </div>
           </div>
           <Controls />
