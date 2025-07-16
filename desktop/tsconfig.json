@@ -10,7 +10,8 @@
     "paths": {
       "@lib/*": ["./src/lib/*"],
       "@components/*": ["./src/components/*"],
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@types/*": ["./src/types/*"]
     },
 
     /* Bundler mode */
