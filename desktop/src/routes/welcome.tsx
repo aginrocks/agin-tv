@@ -1,8 +1,5 @@
 import { SplashSection } from "@components/SplashScreen";
-import { Button } from "@components/ui/button";
-import { createFileRoute } from "@tanstack/react-router";
-import { IconArrowRight } from "@tabler/icons-react";
-import { APP_NAME, APP_TAGLINE } from "@lib/constants/names";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
@@ -15,6 +12,18 @@ export const Route = createFileRoute("/welcome")({
 
 function RouteComponent() {
   const [stage, setStage] = useState<"welcome" | "logging">("welcome");
+
+  const navigate = useNavigate();
+
+  async function handleLogin() {
+    try {
+      const auth = await invoke<string>("authenticate");
+      console.log(auth);
+      navigate({ to: "/app/home" });
+    } catch (error) {
+      console.error("Authentication failed:", error);
+    }
+  }
 
   return (
     <SplashSection>
@@ -30,14 +39,12 @@ function RouteComponent() {
             <WelcomeComponent
               onClick={async () => {
                 setStage("logging");
-                await invoke("authenticate");
+                await handleLogin();
               }}
             />
           ) : (
             <LoggingInComponent
-              onRepeat={async () => {
-                await invoke("authenticate");
-              }}
+              onRepeat={handleLogin}
               onCancel={async () => {
                 setStage("welcome");
                 await invoke("cancel_authentication");

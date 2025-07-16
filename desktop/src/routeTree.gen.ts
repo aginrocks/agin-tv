@@ -10,11 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppHomeRouteRouteImport } from './routes/app/home/route'
+import { Route as AppHomeIndexRouteImport } from './routes/app/home/index'
 
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,30 +30,49 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppHomeRouteRoute = AppHomeRouteRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppHomeIndexRoute = AppHomeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppHomeRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/app/home': typeof AppHomeRouteRouteWithChildren
+  '/app/home/': typeof AppHomeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/app/home': typeof AppHomeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/app/home': typeof AppHomeRouteRouteWithChildren
+  '/app/home/': typeof AppHomeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/welcome'
+  fullPaths: '/' | '/app' | '/welcome' | '/app/home' | '/app/home/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/welcome'
-  id: '__root__' | '/' | '/welcome'
+  to: '/' | '/app' | '/welcome' | '/app/home'
+  id: '__root__' | '/' | '/app' | '/welcome' | '/app/home' | '/app/home/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRouteRoute: typeof AppRouteRouteWithChildren
   WelcomeRoute: typeof WelcomeRoute
 }
 
@@ -58,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -65,11 +99,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/home': {
+      id: '/app/home'
+      path: '/home'
+      fullPath: '/app/home'
+      preLoaderRoute: typeof AppHomeRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/home/': {
+      id: '/app/home/'
+      path: '/'
+      fullPath: '/app/home/'
+      preLoaderRoute: typeof AppHomeIndexRouteImport
+      parentRoute: typeof AppHomeRouteRoute
+    }
   }
 }
 
+interface AppHomeRouteRouteChildren {
+  AppHomeIndexRoute: typeof AppHomeIndexRoute
+}
+
+const AppHomeRouteRouteChildren: AppHomeRouteRouteChildren = {
+  AppHomeIndexRoute: AppHomeIndexRoute,
+}
+
+const AppHomeRouteRouteWithChildren = AppHomeRouteRoute._addFileChildren(
+  AppHomeRouteRouteChildren,
+)
+
+interface AppRouteRouteChildren {
+  AppHomeRouteRoute: typeof AppHomeRouteRouteWithChildren
+}
+
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppHomeRouteRoute: AppHomeRouteRouteWithChildren,
+}
+
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRouteRoute: AppRouteRouteWithChildren,
   WelcomeRoute: WelcomeRoute,
 }
 export const routeTree = rootRouteImport
