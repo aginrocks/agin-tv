@@ -1,6 +1,9 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-use axum::{Json, extract::State};
+use axum::{
+    Json,
+    extract::{Request, State},
+};
 use openidconnect::{CsrfToken, Nonce, RedirectUrl, Scope, core::CoreAuthenticationFlow};
 use serde::Serialize;
 use tower_sessions::Session;
@@ -20,8 +23,19 @@ pub fn routes() -> Vec<Route> {
 }
 
 #[derive(ToSchema, Serialize)]
-struct StartSessionResponse {
+struct StartSessionJson {
     pub auth_url: String,
+}
+
+#[derive(ToSchema, Serialize)]
+struct SessionJson {
+    pub token: String,
+}
+
+#[derive(ToSchema, Serialize)]
+enum StartSessionResponse {
+    New(StartSessionJson),
+    Old(SessionJson),
 }
 
 /// Request link to identity provider
@@ -36,7 +50,14 @@ struct StartSessionResponse {
 async fn start_session(
     State(state): State<AppState>,
     session: Session,
+    request: Request,
 ) -> AxumResult<Json<StartSessionResponse>> {
+    dbg!(request.headers());
+
+    if let Some(token) = session.get::<String>("access_token").await? {
+        return Ok(Json(StartSessionResponse::Old(SessionJson { token })));
+    }
+
     let csrf_token = CsrfToken::new_random();
 
     session.insert("csrf_token", csrf_token.clone()).await?;
@@ -60,7 +81,7 @@ async fn start_session(
         .add_scope(Scope::new("openid".to_string()))
         .url();
 
-    Ok(Json(StartSessionResponse {
+    Ok(Json(StartSessionResponse::New(StartSessionJson {
         auth_url: auth_url.to_string(),
-    }))
+    })))
 }

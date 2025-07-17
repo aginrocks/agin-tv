@@ -33,4 +33,5 @@ openidconnect = { version = "4.0.1", features = ["reqwest-blocking"] }
 dotenvy = "0.15.7"
 tracing = "0.1.41"
 color-eyre = "0.6.5"
+tauri-plugin-store = "2"
 
