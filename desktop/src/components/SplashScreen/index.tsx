@@ -8,7 +8,7 @@ export type SplashScreenProps = {
   visible?: boolean;
 };
 
-export function SplashScreen({ children, visible }: SplashScreenProps) {
+export function SplashScreen({ visible }: SplashScreenProps) {
   return (
     <SplashSection
       className={cn(
@@ -20,7 +20,6 @@ export function SplashScreen({ children, visible }: SplashScreenProps) {
     >
       <Spinner className="mb-3" />
       <div className="font-semibold text-lg mb-0.5">Loading</div>
-      <div className="text-sm text-muted-foreground">Syncing data...</div>
     </SplashSection>
   );
 }

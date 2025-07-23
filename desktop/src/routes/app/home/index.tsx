@@ -1,7 +1,5 @@
 import Carousel from "@components/Carousel";
-import { $api } from "@lib/providers/api";
 import useApi from "@lib/providers/useApi";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 

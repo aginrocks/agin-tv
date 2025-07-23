@@ -102,9 +102,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.6.0(vite@6.3.5(@types/node@24.0.12)(jiti@2.4.2)(lightningcss@1.30.1)(tsx@4.20.3))
-      i:
-        specifier: ^0.3.7
-        version: 0.3.7
       openapi-typescript:
         specifier: ^7.8.0
         version: 7.8.0(typescript@5.6.3)
@@ -1053,10 +1050,6 @@ packages:
   https-proxy-agent@7.0.6:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
-
-  i@0.3.7:
-    resolution: {integrity: sha512-FYz4wlXgkQwIPqhzC5TdNMLSE5+GS1IIDJZY/1ZiEPCT2S3COUVZeT5OW4BmW4r5LHLQuOosSwsvnroG9GR59Q==}
-    engines: {node: '>=0.4'}
 
   index-to-position@1.1.0:
     resolution: {integrity: sha512-XPdx9Dq4t9Qk1mTMbWONJqU7boCoumEH7fRET37HX5+khDUl3J2W6PdALxhILYlIYx2amlwYcRPp28p0tSiojg==}
@@ -2385,8 +2378,6 @@ snapshots:
       debug: 4.4.1(supports-color@10.0.0)
     transitivePeerDependencies:
       - supports-color
-
-  i@0.3.7: {}
 
   index-to-position@1.1.0: {}
 
