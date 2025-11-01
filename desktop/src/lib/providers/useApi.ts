@@ -1,10 +1,11 @@
-import { useMemo } from "react";
-import type { paths } from "@/types/api";
-import createFetchClient from "openapi-fetch";
-import createClient from "openapi-react-query";
-import { useAtomValue } from "jotai";
-import { tokenAtom } from "@lib/atoms/token";
-import { useNavigate } from "@tanstack/react-router";
+import { useMemo } from 'react';
+import type { paths } from '@/types/api';
+import createFetchClient from 'openapi-fetch';
+import createClient from 'openapi-react-query';
+import { useAtomValue } from 'jotai';
+import { tokenAtom } from '@lib/atoms/token';
+import { useNavigate } from '@tanstack/react-router';
+import { apiUrl } from '@/config';
 
 export default function useApi() {
   const token = useAtomValue(tokenAtom);
@@ -12,12 +13,12 @@ export default function useApi() {
 
   const api = useMemo(() => {
     if (!token) {
-      navigate({ to: "/" });
+      navigate({ to: '/' });
     }
     const fetchClient = createFetchClient<paths>({
-      baseUrl: "http://localhost:42069",
+      baseUrl: apiUrl,
       headers: {
-        Authorization: token ? `Bearer ${token}` : "",
+        Authorization: `Bearer ${token}`,
       },
     });
 

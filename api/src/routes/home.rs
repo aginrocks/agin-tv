@@ -8,7 +8,7 @@ use visible::StructFields;
 
 use crate::{
     axum_error::AxumResult, middlewares::require_auth::UnauthorizedError, models::Movie,
-    routes::RouteProtectionLevel, state::AppState,
+    _routes::RouteProtectionLevel, state::AppState,
 };
 
 use super::Route;

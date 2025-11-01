@@ -11,8 +11,8 @@ use utoipa::ToSchema;
 use utoipa_axum::routes;
 
 use crate::{
+    _routes::{Route, RouteProtectionLevel},
     axum_error::AxumResult,
-    routes::{Route, RouteProtectionLevel},
     state::AppState,
 };
 
@@ -75,7 +75,6 @@ async fn start_session(
         .set_redirect_uri(std::borrow::Cow::Owned(
             RedirectUrl::new(redirect_url).unwrap(),
         ))
-        // Set the desired scopes.
         .add_scope(Scope::new("email".to_string()))
         .add_scope(Scope::new("profile".to_string()))
         .add_scope(Scope::new("openid".to_string()))

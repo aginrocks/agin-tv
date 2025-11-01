@@ -1,5 +1,6 @@
 mod axum_error;
 mod database;
+mod init;
 mod middlewares;
 mod models;
 mod mongo_id;
@@ -41,9 +42,9 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_scalar::{Scalar, Servable as _};
 
 use crate::{
-    database::{init_database, init_session_store},
+    database::init_session_store,
+    init::init_database,
     middlewares::{require_auth::require_auth, session_bearer_override},
-    routes::RouteProtectionLevel,
     settings::Settings,
     state::AppState,
 };

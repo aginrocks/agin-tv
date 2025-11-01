@@ -8,8 +8,8 @@ use tower_sessions::Session;
 use utoipa_axum::routes;
 
 use crate::{
+    _routes::RouteProtectionLevel,
     axum_error::{AxumError, AxumResult},
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 

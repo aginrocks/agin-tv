@@ -9,11 +9,11 @@ pub async fn session_bearer_override(mut req: Request, next: Next) -> AxumResult
         && let Ok(auth_str) = auth.to_str()
         && let Some(token) = auth_str.strip_prefix("Bearer ")
     {
-        let headet_value = HeaderValue::from_str(&format!("id={token}")).wrap_err("XD")?;
+        let header_value = HeaderValue::from_str(&format!("id={token}")).wrap_err("XD")?;
         if let Some(token) = req.headers_mut().get_mut("Cookie") {
-            *token = headet_value;
+            *token = header_value;
         } else {
-            req.headers_mut().insert("Cookie", headet_value);
+            req.headers_mut().insert("Cookie", header_value);
         }
     }
 

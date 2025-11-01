@@ -14,17 +14,17 @@ use crate::{
     axum_error::{AxumError, AxumResult},
     middlewares::require_auth::UnauthorizedError,
     models::{Genre, Movie, movie::TMDBMovieData},
-    routes::{Route, RouteProtectionLevel, empty_string_as_none},
+    routes::empty_string_as_none,
     state::AppState,
     tmdb_configuration::{TMDB_CONFIGURATION, movie_details, tv_series_details},
 };
 
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 const PATH: &str = "/api/movies/{movie_id}";
 
-pub fn routes() -> Vec<Route> {
-    vec![(routes!(get_movie), RouteProtectionLevel::Authenticated)]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(get_movie))
 }
 
 #[derive(Serialize, Deserialize, Debug)]

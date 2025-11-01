@@ -11,13 +11,6 @@ use tower_sessions_redis_store::{
     fred::prelude::{ClientLike, Config, Pool},
 };
 
-pub async fn init_database(settings: &Settings) -> Result<Database> {
-    let client = Client::with_uri_str(&settings.db.connection_string).await?;
-    let database = client.database(&settings.db.database_name);
-
-    Ok(database)
-}
-
 pub async fn init_session_store(
     settings: &Settings,
 ) -> Result<SessionManagerLayer<RedisStore<Pool>>> {
