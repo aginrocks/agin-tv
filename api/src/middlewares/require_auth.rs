@@ -46,46 +46,14 @@ pub async fn require_auth(
     mut request: Request,
     next: Next,
 ) -> AxumResult<Response> {
-    let token = session
-        .get::<String>("access_token")
-        .await
-        .map_err(|_| AxumError::unauthorized(eyre::eyre!("Unauthorized")))?;
+    // let token = session
+    //     .get::<String>("access_token")
+    //     .await
+    //     .map_err(|_| AxumError::unauthorized(eyre::eyre!("Unauthorized")))?;
 
-    if token.is_none() {
-        return Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")));
-    }
-
-    // let claims = claims.ok_or_else(|| AxumError::unauthorized(eyre::eyre!("Unauthorized")))?;
-
-    // let sub = claims.subject().to_string();
-    // let name = claims
-    //     .name()
-    //     .wrap_err("Name is required")?
-    //     .get(None)
-    //     .wrap_err("Name is required")?
-    //     .to_string();
-    // let email = claims.email().wrap_err("Email is required")?.to_string();
-
-    // let user = state
-    //     .db
-    //     .collection::<User>("users")
-    //     .find_one_and_update(
-    //         doc! { "sub": &sub },
-    //         doc! {
-    //             "$set": {
-    //                 "subject": sub,
-    //                 "name": name,
-    //                 "email": email,
-    //             }
-    //         },
-    //     )
-    //     .upsert(true)
-    //     .return_document(ReturnDocument::After)
-    //     .await?
-    //     .wrap_err("User not found (wtf?")?;
-
-    // request.extensions_mut().insert(UserData(user.clone()));
-    // request.extensions_mut().insert(UserId(user.id));
+    // if token.is_none() {
+    //     return Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")));
+    // }
 
     Ok(next.run(request).await)
 }

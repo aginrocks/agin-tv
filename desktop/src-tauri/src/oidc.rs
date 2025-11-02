@@ -40,7 +40,15 @@ async fn authorize(
         .await
         .expect("Failed to send request");
 
-    dbg!(res);
+    dbg!(&res);
+
+    if !res.status().is_success() {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Authentication failed",
+        )
+            .into_response();
+    }
 
     // state.http_client.cookie_store().unwrap().clear();
 

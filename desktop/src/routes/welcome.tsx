@@ -1,19 +1,19 @@
-import { SplashSection } from "@components/SplashScreen";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { invoke } from "@tauri-apps/api/core";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
-import WelcomeComponent from "@components/welcome";
-import LoggingInComponent from "@components/welcome/logging-in";
-import { useSetAtom } from "jotai";
-import { tokenAtom } from "@lib/atoms/token";
+import { SplashSection } from '@components/SplashScreen';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { invoke } from '@tauri-apps/api/core';
+import { AnimatePresence, motion } from 'motion/react';
+import { useState } from 'react';
+import WelcomeComponent from '@components/welcome';
+import LoggingInComponent from '@components/welcome/logging-in';
+import { useSetAtom } from 'jotai';
+import { tokenAtom } from '@lib/atoms/token';
 
-export const Route = createFileRoute("/welcome")({
+export const Route = createFileRoute('/welcome')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const [stage, setStage] = useState<"welcome" | "logging">("welcome");
+  const [stage, setStage] = useState<'welcome' | 'logging'>('welcome');
 
   const navigate = useNavigate();
 
@@ -21,12 +21,13 @@ function RouteComponent() {
 
   async function handleLogin() {
     try {
-      const auth = await invoke<string>("authenticate");
+      const auth = await invoke<string>('authenticate');
       console.log(auth);
       setToken(auth);
-      navigate({ to: "/app/home" });
+      navigate({ to: '/app/home' });
     } catch (error) {
-      console.error("Authentication failed:", error);
+      console.error('Authentication failed:', error);
+      navigate({ to: '/error' });
     }
   }
 
@@ -40,10 +41,10 @@ function RouteComponent() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -10 }}
         >
-          {stage === "welcome" ? (
+          {stage === 'welcome' ? (
             <WelcomeComponent
               onClick={async () => {
-                setStage("logging");
+                setStage('logging');
                 await handleLogin();
               }}
             />
@@ -51,8 +52,8 @@ function RouteComponent() {
             <LoggingInComponent
               onRepeat={handleLogin}
               onCancel={async () => {
-                setStage("welcome");
-                await invoke("cancel_authentication");
+                setStage('welcome');
+                await invoke('cancel_authentication');
               }}
             />
           )}

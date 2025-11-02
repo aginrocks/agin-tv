@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as ErrorRouteImport } from './routes/error'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppHomeRouteRouteImport } from './routes/app/home/route'
@@ -19,6 +20,11 @@ import { Route as AppMovieMovieIdRouteImport } from './routes/app/movie/$movieId
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ErrorRoute = ErrorRouteImport.update({
+  id: '/error',
+  path: '/error',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -50,6 +56,7 @@ const AppMovieMovieIdRoute = AppMovieMovieIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/error': typeof ErrorRoute
   '/welcome': typeof WelcomeRoute
   '/app/home': typeof AppHomeRouteRouteWithChildren
   '/app/movie/$movieId': typeof AppMovieMovieIdRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/error': typeof ErrorRoute
   '/welcome': typeof WelcomeRoute
   '/app/movie/$movieId': typeof AppMovieMovieIdRoute
   '/app/home': typeof AppHomeIndexRoute
@@ -66,6 +74,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/error': typeof ErrorRoute
   '/welcome': typeof WelcomeRoute
   '/app/home': typeof AppHomeRouteRouteWithChildren
   '/app/movie/$movieId': typeof AppMovieMovieIdRoute
@@ -76,16 +85,18 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/error'
     | '/welcome'
     | '/app/home'
     | '/app/movie/$movieId'
     | '/app/home/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/welcome' | '/app/movie/$movieId' | '/app/home'
+  to: '/' | '/app' | '/error' | '/welcome' | '/app/movie/$movieId' | '/app/home'
   id:
     | '__root__'
     | '/'
     | '/app'
+    | '/error'
     | '/welcome'
     | '/app/home'
     | '/app/movie/$movieId'
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  ErrorRoute: typeof ErrorRoute
   WelcomeRoute: typeof WelcomeRoute
 }
 
@@ -105,6 +117,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/error': {
+      id: '/error'
+      path: '/error'
+      fullPath: '/error'
+      preLoaderRoute: typeof ErrorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -174,6 +193,7 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
+  ErrorRoute: ErrorRoute,
   WelcomeRoute: WelcomeRoute,
 }
 export const routeTree = rootRouteImport
