@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::settings::Settings;
+use fred::prelude::Pool;
 use mongodb::Database;
 use openidconnect::{
     CsrfToken, EmptyAdditionalClaims, PkceCodeChallenge,
@@ -37,4 +38,5 @@ pub struct AppState {
     pub db: Database,
     pub settings: Arc<Settings>,
     pub oidc_client: Arc<OidcClient>,
+    pub redis_store: Pool,
 }

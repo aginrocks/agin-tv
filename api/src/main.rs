@@ -42,8 +42,10 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_scalar::{Scalar, Servable as _};
 
 use crate::{
-    database::init_session_store,
-    init::init_database,
+    init::{
+        create_oidc_client, init_axum, init_database, init_listener, init_redis, init_reqwest,
+        init_session_store, init_tracing,
+    },
     middlewares::{require_auth::require_auth, session_bearer_override},
     settings::Settings,
     state::AppState,
@@ -63,6 +65,7 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
 
     dotenvy::dotenv().ok();
+
     init_tracing().wrap_err("failed to set global tracing subscriber")?;
 
     info!(
@@ -79,14 +82,17 @@ async fn main() -> Result<()> {
 
     let oidc_client = Arc::new(create_oidc_client(settings.clone()).await?);
 
+    let redis_store = init_redis(&settings).await?;
+
     let app_state = AppState {
         db,
         http_client,
         settings: settings.clone(),
         oidc_client,
+        redis_store: redis_store.clone(),
     };
 
-    let session_layer = init_session_store(&settings).await?;
+    let session_layer = init_session_store(&settings, redis_store).await?;
     let app = init_axum(app_state, session_layer).await?;
     let listener = init_listener(&settings).await?;
 
@@ -103,203 +109,4 @@ async fn main() -> Result<()> {
         .wrap_err("failed to run server")?;
 
     Ok(())
-}
-
-async fn create_oidc_client(settings: Arc<Settings>) -> Result<state::OidcClient> {
-    let client_id = ClientId::new(settings.oidc.client_id.to_string());
-
-    let client_secret = settings.oidc.client_secret.clone();
-
-    let http_client = openidconnect::reqwest::ClientBuilder::new()
-        // Following redirects opens the client up to SSRF vulnerabilities.
-        .redirect(openidconnect::reqwest::redirect::Policy::none())
-        .build()
-        .expect("Client should build");
-
-    let provider_metadata = CoreProviderMetadata::discover_async(
-        IssuerUrl::new(settings.oidc.issuer.to_string())?,
-        &http_client,
-    )
-    .await?;
-
-    Ok(openidconnect::Client::from_provider_metadata(
-        provider_metadata,
-        client_id,
-        client_secret,
-    ))
-}
-
-fn init_tracing() -> Result<()> {
-    tracing_subscriber::Registry::default()
-        .with(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::NEW | FmtSpan::CLOSE))
-        .with(ErrorLayer::default())
-        .with(
-            tracing_subscriber::EnvFilter::builder()
-                .with_default_directive(LevelFilter::INFO.into())
-                .with_env_var("RUST_LOG")
-                .from_env()?,
-        )
-        .try_init()?;
-
-    Ok(())
-}
-
-fn init_reqwest() -> Result<reqwest::Client, reqwest::Error> {
-    reqwest::ClientBuilder::new()
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-}
-
-#[instrument(skip(state, session_layer))]
-async fn init_axum(
-    state: AppState,
-    session_layer: SessionManagerLayer<RedisStore<Pool>>,
-) -> Result<Router> {
-    let oidc_login_service = ServiceBuilder::new()
-        .layer(HandleErrorLayer::new(|e: MiddlewareError| async {
-            error!(error = ?e, "An error occurred in OIDC login middleware");
-            e.into_response()
-        }))
-        .layer(OidcLoginLayer::<GroupClaims>::new());
-
-    let app_url = format!(
-        "{}/oidc",
-        state
-            .settings
-            .general
-            .public_url
-            .to_string()
-            .trim_end_matches('/')
-    );
-
-    let mut oidc_client = OidcClient::<GroupClaims>::builder()
-        .with_default_http_client()
-        .with_redirect_url(app_url.parse()?)
-        .with_client_id(state.settings.oidc.client_id.as_str())
-        .add_scope("profile")
-        .add_scope("email")
-        .add_scope("offline_access");
-
-    if let Some(client_secret) = state.settings.oidc.client_secret.as_ref() {
-        oidc_client = oidc_client.with_client_secret(client_secret.secret().clone());
-    }
-
-    let oidc_client = oidc_client
-        .discover(state.settings.oidc.issuer.deref().clone())
-        .instrument(info_span!("oidc_discover"))
-        .await?
-        .build();
-
-    let oidc_auth_service = ServiceBuilder::new()
-        .layer(HandleErrorLayer::new(|e: MiddlewareError| async {
-            error!(error = ?e, "An error occurred in OIDC auth middleware");
-            e.into_response()
-        }))
-        .layer(OidcAuthLayer::new(oidc_client));
-
-    let routes = routes::routes();
-
-    // Create separate routers for public and protected routes
-    let public_router = OpenApiRouter::with_openapi(ApiDoc::openapi());
-    let redirect_router = OpenApiRouter::with_openapi(ApiDoc::openapi());
-    let auth_router = OpenApiRouter::with_openapi(ApiDoc::openapi());
-
-    // Add public routes (these don't need authentication)
-    let public_router = routes
-        .clone()
-        .into_iter()
-        .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Public))
-        .fold(public_router, |router, (route, _)| router.routes(route));
-
-    // Add protected routes with OIDC login layer
-    let redirect_router = routes
-        .clone()
-        .into_iter()
-        .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Redirect))
-        .fold(redirect_router, |router, (route, _)| router.routes(route))
-        .layer(oidc_login_service.clone());
-
-    // Add protected routes which don't redirect but require authentication
-    let auth_router = routes
-        .clone()
-        .into_iter()
-        .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Authenticated))
-        .fold(auth_router, |router, (route, _)| router.routes(route))
-        .layer(middleware::from_fn_with_state(state.clone(), require_auth));
-    // Combine the routers
-    let router = public_router.merge(redirect_router);
-
-    let router = router.merge(auth_router);
-
-    let router = router.layer(axum::extract::Extension(state.clone()));
-
-    let oidc_handler_router: OpenApiRouter<AppState> =
-        OpenApiRouter::with_openapi(ApiDoc::openapi())
-            // .layer(session_layer.clone()) // Apply session layer first
-            .layer(oidc_login_service)
-            .route(
-                "/oidc",
-                any(|session, oidc_client, query| async move {
-                    match handle_oidc_redirect::<GroupClaims>(session, oidc_client, query).await {
-                        Ok(response) => response.into_response(),
-                        Err(e) => {
-                            error!(error = ?e, "OIDC redirect handler error: {}", e);
-                            (StatusCode::BAD_REQUEST, format!("OIDC error: {e}")).into_response()
-                        }
-                    }
-                }),
-            );
-
-    let router = router.merge(oidc_handler_router);
-
-    let (router, api) = router.with_state(state).split_for_parts();
-
-    let openapi_prefix = "/apidoc";
-    let spec_path = format!("{openapi_prefix}/openapi.json");
-
-    let router = router
-        .merge(Redoc::with_url(
-            format!("{openapi_prefix}/redoc"),
-            api.clone(),
-        ))
-        .merge(RapiDoc::new(spec_path.clone()).path(format!("{openapi_prefix}/rapidoc")))
-        .merge(Scalar::with_url(
-            format!("{openapi_prefix}/scalar"),
-            api.clone(),
-        ))
-        .route(
-            &spec_path,
-            axum::routing::get(|| async move { axum::response::Json(api) }),
-        );
-
-    let router = router
-        .layer(oidc_auth_service)
-        .layer(session_layer)
-        .layer(from_fn(session_bearer_override::session_bearer_override))
-        .layer(
-            tower_http::cors::CorsLayer::new()
-                .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
-                .allow_methods([
-                    axum::http::Method::GET,
-                    axum::http::Method::POST,
-                    axum::http::Method::OPTIONS,
-                    axum::http::Method::PUT,
-                    axum::http::Method::DELETE,
-                ])
-                .allow_headers([
-                    axum::http::header::AUTHORIZATION,
-                    axum::http::header::CONTENT_TYPE,
-                    axum::http::header::COOKIE,
-                ])
-                .allow_credentials(true),
-        )
-        .fallback(|| async { (StatusCode::NOT_FOUND, "Not found").into_response() });
-
-    Ok(router)
-}
-
-async fn init_listener(settings: &Settings) -> Result<TcpListener> {
-    let addr: Vec<SocketAddr> = settings.general.listen_address.clone().into();
-
-    Ok(TcpListener::bind(addr.as_slice()).await?)
 }

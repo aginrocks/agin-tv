@@ -1,6 +1,6 @@
 use crate::{
-    _routes::movies::movie_id::MovieResponse,
     models::{Genre, Movie},
+    routes::movies::movie_id::MovieResponse,
     state::AppState,
     tmdb_configuration::{MovieDetailsResponse, TvDetailsResponse},
 };

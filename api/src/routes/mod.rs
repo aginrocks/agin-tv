@@ -1,16 +1,19 @@
+mod auth;
 mod health;
-mod movies;
+pub mod movies;
 
-use crate::{ApiDoc, middlewares::require_auth, state::AppState};
+use crate::{ApiDoc, middlewares::require_auth::require_auth, state::AppState};
 use axum::middleware;
-use utoipa::OpenApi;
+use utoipa::{OpenApi, ToSchema, schema};
 use utoipa_axum::router::OpenApiRouter;
 
-use serde::{Deserialize, Deserializer, de};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use std::{fmt, str::FromStr};
 
 pub fn api_routes() -> OpenApiRouter<AppState> {
-    let public = OpenApiRouter::new().nest("/health", health::routes());
+    let public = OpenApiRouter::new()
+        .nest("/health", health::routes())
+        .nest("/auth", auth::routes());
 
     let auth = OpenApiRouter::new()
         .nest("/movies", movies::routes())
@@ -34,4 +37,28 @@ where
         None | Some("") => Ok(None),
         Some(s) => FromStr::from_str(s).map_err(de::Error::custom).map(Some),
     }
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({"error": "Unauthorized"}))]
+pub struct UnauthorizedError {
+    error: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({"error": "Not Found"}))]
+pub struct NotFoundError {
+    error: String,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct GenericError {
+    error: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({"success": true,"id": "60c72b2f9b1d8c001c8e4f5a"}))]
+pub struct CreateSuccess {
+    success: bool,
+    id: String,
 }

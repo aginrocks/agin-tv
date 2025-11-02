@@ -12,16 +12,13 @@ use visible::StructFields;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    middlewares::require_auth::UnauthorizedError,
     models::{Genre, Movie, movie::TMDBMovieData},
-    routes::empty_string_as_none,
+    routes::{UnauthorizedError, empty_string_as_none},
     state::AppState,
     tmdb_configuration::{TMDB_CONFIGURATION, movie_details, tv_series_details},
 };
 
 use utoipa_axum::{router::OpenApiRouter, routes};
-
-const PATH: &str = "/api/movies/{movie_id}";
 
 pub fn routes() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().routes(routes!(get_movie))
@@ -60,7 +57,7 @@ pub struct MovieResponse {
 /// Get a movie
 #[utoipa::path(
     method(get),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = Movie),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json")

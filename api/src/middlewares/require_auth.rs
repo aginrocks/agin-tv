@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use axum::{
+    Extension,
     extract::{Request, State},
     middleware::Next,
     response::Response,
@@ -36,12 +37,12 @@ impl Deref for UserId {
         &self.0
     }
 }
-
+// TODO: FIx that shit
 /// Middleware that ensures the user is authenticated
 pub async fn require_auth(
-    State(state): State<AppState>,
-    session: Session,
     claims: Option<OidcClaims<GroupClaims>>,
+    Extension(state): Extension<AppState>,
+    session: Session,
     mut request: Request,
     next: Next,
 ) -> AxumResult<Response> {
@@ -87,10 +88,4 @@ pub async fn require_auth(
     // request.extensions_mut().insert(UserId(user.id));
 
     Ok(next.run(request).await)
-}
-
-#[derive(Serialize, ToSchema)]
-#[schema(example = json!({"error": "Unauthorized"}))]
-pub struct UnauthorizedError {
-    error: String,
 }
