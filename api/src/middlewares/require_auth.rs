@@ -46,14 +46,12 @@ pub async fn require_auth(
     mut request: Request,
     next: Next,
 ) -> AxumResult<Response> {
-    // let token = session
-    //     .get::<String>("access_token")
-    //     .await
-    //     .map_err(|_| AxumError::unauthorized(eyre::eyre!("Unauthorized")))?;
+    if let Some(auth) = request.headers().get("Authorization").cloned()
+        && let Ok(auth_str) = auth.to_str()
+        && let Some(token) = auth_str.strip_prefix("Bearer ")
+    {
+        return Ok(next.run(request).await);
+    }
 
-    // if token.is_none() {
-    //     return Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")));
-    // }
-
-    Ok(next.run(request).await)
+    Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")))
 }
