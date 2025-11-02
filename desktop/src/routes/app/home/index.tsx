@@ -1,24 +1,19 @@
-import Carousel from "@components/Carousel";
-import useApi from "@lib/providers/useApi";
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
+import Carousel from '@components/Carousel';
+import useApi from '@lib/providers/useApi';
+import { createFileRoute } from '@tanstack/react-router';
 
-export const Route = createFileRoute("/app/home/")({
+export const Route = createFileRoute('/app/home/')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const api = useApi();
 
-  const xd = api.useQuery("get", "/api/home");
-
-  useEffect(() => {
-    console.log(xd);
-  }, [xd]);
+  const { data: home_data } = api.useQuery('get', '/api/home');
 
   return (
     <div>
-      <Carousel slides={xd.data?.carousel} />
+      <Carousel slides={home_data?.carousel} />
     </div>
   );
 }

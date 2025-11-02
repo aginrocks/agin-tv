@@ -24,6 +24,7 @@ enum StartSessionResponse {
 
 #[tauri::command]
 pub async fn authenticate(handle: tauri::AppHandle) -> Result<Option<String>, String> {
+    dbg!("starting authentication process");
     let state = handle.state::<AppState>();
 
     if let Some(abort_handle) = state.abort_handle.write().await.take() {
@@ -58,7 +59,7 @@ pub async fn authenticate(handle: tauri::AppHandle) -> Result<Option<String>, St
         .bearer_auth(token.clone().unwrap_or_default())
         .send()
         .await
-        .expect("Failed to start session");
+        .map_err(|_| "failed to start session")?;
 
     let cookie = res
         .cookies()
@@ -85,6 +86,7 @@ pub async fn authenticate(handle: tauri::AppHandle) -> Result<Option<String>, St
         }
 
         //TODO: check if browser is opened
+        dbg!("opening browser");
         open::that(json.auth_url).unwrap();
 
         match server_handle.await {
