@@ -1,5 +1,6 @@
 mod auth;
 mod health;
+mod home;
 pub mod movies;
 
 use crate::{ApiDoc, middlewares::require_auth::require_auth, state::AppState};
@@ -17,6 +18,7 @@ pub fn api_routes() -> OpenApiRouter<AppState> {
 
     let auth = OpenApiRouter::new()
         .nest("/movies", movies::routes())
+        .nest("/home", home::routes())
         .layer(middleware::from_fn(require_auth));
 
     auth.merge(public)

@@ -162,6 +162,26 @@ pub async fn init_axum(
         .layer(Extension(state))
         .layer(oidc_auth_service)
         .layer(session_layer)
+        .layer(
+            tower_http::cors::CorsLayer::new()
+                .allow_origin(vec![
+                    "http://localhost:5173".parse().unwrap(),
+                    "tauri://localhost".parse().unwrap(),
+                ])
+                .allow_methods([
+                    axum::http::Method::GET,
+                    axum::http::Method::POST,
+                    axum::http::Method::OPTIONS,
+                    axum::http::Method::PUT,
+                    axum::http::Method::DELETE,
+                ])
+                .allow_headers([
+                    axum::http::header::AUTHORIZATION,
+                    axum::http::header::CONTENT_TYPE,
+                    axum::http::header::COOKIE,
+                ])
+                .allow_credentials(true),
+        )
         .fallback(|| async { (StatusCode::NOT_FOUND, "Not found").into_response() });
 
     Ok(router)

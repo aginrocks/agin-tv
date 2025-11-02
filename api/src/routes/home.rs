@@ -3,20 +3,13 @@ use bson::doc;
 use futures::stream::TryStreamExt;
 use serde::Serialize;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use visible::StructFields;
 
-use crate::{
-    axum_error::AxumResult, middlewares::require_auth::UnauthorizedError, models::Movie,
-    _routes::RouteProtectionLevel, state::AppState,
-};
+use crate::{axum_error::AxumResult, models::Movie, routes::UnauthorizedError, state::AppState};
 
-use super::Route;
-
-const PATH: &str = "/api/home";
-
-pub fn routes() -> Vec<Route> {
-    vec![(routes!(home), RouteProtectionLevel::Authenticated)]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(home))
 }
 
 #[derive(Serialize, ToSchema)]
@@ -37,7 +30,7 @@ struct HomeResponse {
 /// Login endpoint that handles the OIDC login flow
 #[utoipa::path(
     method(get),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = HomeResponse),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json")
