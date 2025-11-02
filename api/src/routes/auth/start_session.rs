@@ -8,18 +8,12 @@ use openidconnect::{CsrfToken, Nonce, RedirectUrl, Scope, core::CoreAuthenticati
 use serde::Serialize;
 use tower_sessions::Session;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::{
-    _routes::{Route, RouteProtectionLevel},
-    axum_error::AxumResult,
-    state::AppState,
-};
+use crate::{axum_error::AxumResult, state::AppState};
 
-const PATH: &str = "/api/auth/start_session";
-
-pub fn routes() -> Vec<Route> {
-    vec![(routes!(start_session), RouteProtectionLevel::Public)]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(start_session))
 }
 
 #[derive(ToSchema, Serialize)]
@@ -41,7 +35,7 @@ enum StartSessionResponse {
 /// Request link to identity provider
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = StartSessionResponse)
     ),

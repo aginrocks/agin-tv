@@ -5,20 +5,15 @@ use color_eyre::eyre::eyre;
 use openidconnect::{AuthorizationCode, CsrfToken, OAuth2TokenResponse, RedirectUrl};
 use serde::Deserialize;
 use tower_sessions::Session;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
-    _routes::RouteProtectionLevel,
     axum_error::{AxumError, AxumResult},
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/auth/login";
-
-pub fn routes() -> Vec<Route> {
-    vec![(routes!(login), RouteProtectionLevel::Public)]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(login))
 }
 
 #[derive(Deserialize)]
@@ -30,7 +25,7 @@ struct CallbackQuery {
 /// Login endpoint that handles the OIDC login flow
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = str)
     ),
