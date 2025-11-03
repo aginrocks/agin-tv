@@ -2,7 +2,9 @@ target
 .env
 config.toml
 docs
-data
+
+data/mongodb/*
+data/valkey/*
 
 !data/mongodb/dummyfile
 !data/valkey/dummyfile
