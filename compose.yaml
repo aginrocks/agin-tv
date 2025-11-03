@@ -42,8 +42,8 @@ services:
     labels:
       traefik.enable: true
       traefik.port: 42069
-      traefik.http.routers.agin-class-api.rule: 'Host(`tvapi.agin.rocks`)'
-      traefik.http.services.agin-class-api.loadbalancer.server.port: 42069
+      traefik.http.routers.agin-tv-api.rule: 'Host(`tvapi.agin.rocks`)'
+      traefik.http.services.agin-tv-api.loadbalancer.server.port: 42069
 networks:
   proxy:
     name: proxy-network
