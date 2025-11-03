@@ -20,6 +20,7 @@ pub fn api_routes() -> OpenApiRouter<AppState> {
     let auth = OpenApiRouter::new()
         .nest("/movies", movies::routes())
         .nest("/home", home::routes())
+        .nest("/search", search::routes())
         .layer(middleware::from_fn(require_auth));
 
     auth.merge(public)
