@@ -49,7 +49,7 @@ function MovieDesctiptionScreen() {
           <div className="flex flex-wrap gap-2 justify-center items-center">
             {movie_data?.genres && movie_data?.genres?.length > 0 ? (
               movie_data?.genres.map((tag) => (
-                <div key={tag._id} className="bg-amber-100 rounded-2xl p-2">
+                <div key={tag._id} className="bg-amber-100 rounded-md p-2">
                   <div className="text-md font-semibold text-black">{tag.name}</div>
                 </div>
               ))
