@@ -22,7 +22,7 @@ services:
       - default
   api:
     build:
-      context: ./api
+      context: .
       dockerfile: Dockerfile
       args:
         PROJECT_NAME: api
@@ -30,8 +30,11 @@ services:
     depends_on:
       - mongodb
       - valkey
+    ports:
+      - 42069:42069
     volumes:
       - ./config.toml:/config.toml:rw
+      - ./.env:/.env
     restart: unless-stopped
     networks:
       - default
