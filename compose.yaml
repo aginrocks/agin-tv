@@ -8,3 +8,41 @@ services:
       - ./data/valkey:/data
     networks:
       - default
+  mongodb:
+    image: mongodb/mongodb-community-server:7.0-ubi8
+    volumes:
+      - type: bind
+        source: ./data/mongodb
+        target: /data/db
+    ports:
+      - :27017
+    restart: unless-stopped
+    user: 1000:1000
+    networks:
+      - default
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      args:
+        PROJECT_NAME: api
+        BUILDPLATFORM: linux/amd64
+    depends_on:
+      - mongodb
+      - valkey
+    volumes:
+      - ./config.toml:/config.toml:rw
+    restart: unless-stopped
+    networks:
+      - default
+      - proxy
+    labels:
+      traefik.enable: true
+      traefik.port: 42069
+      traefik.http.routers.agin-class-api.rule: 'Host(`tvapi.agin.rocks`)'
+      traefik.http.services.agin-class-api.loadbalancer.server.port: 42069
+networks:
+  proxy:
+    name: proxy-network
+    external: true
+  default:
