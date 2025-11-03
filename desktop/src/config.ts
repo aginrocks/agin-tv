@@ -1,1 +1,1 @@
-export const apiUrl = 'http://localhost:42069';
+export const apiUrl = 'https://tvapi.agin.rocks';

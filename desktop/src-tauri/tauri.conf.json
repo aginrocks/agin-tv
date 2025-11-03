@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "desktop",
+  "productName": "Agin TV",
   "version": "0.1.0",
   "identifier": "rocks.agin.tv.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "https://agin.rocks",
     "frontendDist": "../dist"
   },
   "plugins": {

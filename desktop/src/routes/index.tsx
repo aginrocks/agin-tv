@@ -1,7 +1,7 @@
 import { apiUrl } from '@/config';
 import { SplashScreen } from '@components/SplashScreen';
 import { tokenAtom } from '@lib/atoms/token';
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { load } from '@tauri-apps/plugin-store';
 import { useSetAtom } from 'jotai';
 import { useEffect } from 'react';

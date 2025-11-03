@@ -112,6 +112,8 @@ You can find the api docs [here](https://tvapi.agin.rocks/apidoc/scalar).
 
 4. Build and run desktop application:
 
+  Api adress is set in `desktop/src-tauri/src/helpers.rs` and `desktop/src/config.ts` you might want to change it.
+
   Before building the desktop app, ensure you have the [necessary dependencies for tauri](https://v2.tauri.app/start/prerequisites/) installed.
 
    Open another terminal window and run:
