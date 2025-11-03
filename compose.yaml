@@ -3,7 +3,7 @@ services:
     image: valkey/valkey:latest
     restart: unless-stopped
     ports:
-      - 6379:6379
+      - :6379
     volumes:
       - ./data/valkey:/data
     networks:
@@ -31,7 +31,7 @@ services:
       - mongodb
       - valkey
     ports:
-      - 42069:42069
+      - :42069
     volumes:
       - ./config.toml:/config.toml:rw
       - ./.env:/.env
