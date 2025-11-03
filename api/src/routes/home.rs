@@ -27,7 +27,7 @@ struct HomeResponse {
     carousel: Vec<CarouselMovie>,
 }
 
-/// Login endpoint that handles the OIDC login flow
+/// Get homescreen data
 #[utoipa::path(
     method(get),
     path = "/",

@@ -48,10 +48,6 @@ async fn start_session(
 ) -> AxumResult<Json<StartSessionResponse>> {
     dbg!(request.headers());
 
-    if let Some(token) = session.get::<String>("access_token").await? {
-        return Ok(Json(StartSessionResponse::Old(SessionJson { token })));
-    }
-
     let csrf_token = CsrfToken::new_random();
 
     session.insert("csrf_token", csrf_token.clone()).await?;

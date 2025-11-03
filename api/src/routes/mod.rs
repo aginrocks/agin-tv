@@ -2,6 +2,7 @@ mod auth;
 mod health;
 mod home;
 pub mod movies;
+mod search;
 
 use crate::{ApiDoc, middlewares::require_auth::require_auth, state::AppState};
 use axum::middleware;

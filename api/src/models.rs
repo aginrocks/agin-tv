@@ -23,13 +23,23 @@ macro_rules! database_object {
     };
 }
 
+database_object!(Token {
+    #[serde(rename = "_id", with = "object_id_as_string_required")]
+    #[schema(value_type = String)]
+    id: ObjectId,
+    #[serde(with = "object_id_as_string_required")]
+    #[schema(value_type = String)]
+    user_id: ObjectId,
+    token: String,
+});
+
 database_object!(User {
     #[serde(rename = "_id", with = "object_id_as_string_required")]
     #[schema(value_type = String)]
     id: ObjectId,
-    subject: String,
     name: String,
     email: String,
+    sub: String,
 });
 
 database_object!(
