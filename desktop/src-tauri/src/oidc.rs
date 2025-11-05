@@ -56,15 +56,8 @@ async fn authorize(
         let _ = tx.send(());
     }
 
-    let html_path = std::path::Path::new("resources/oauth.html");
-    match tokio::fs::read_to_string(html_path).await {
-        Ok(contents) => axum::response::Html(contents).into_response(),
-        Err(_) => (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to load oauth.html",
-        )
-            .into_response(),
-    }
+    let contents = include_str!("../resources/oauth.html");
+    axum::response::Html(contents).into_response()
 }
 
 pub async fn run_server(handle: tauri::AppHandle) -> Result<&'static str, std::io::Error> {

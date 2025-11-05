@@ -62,7 +62,12 @@
     "android": {},
     "linux": {
       "deb": {
-        "depends": []
+        "depends": [],
+        "desktopTemplate": "resources/agin-tv.desktop"
+      },
+      "rpm": {
+        "depends": [],
+        "desktopTemplate": "resources/agin-tv.desktop"
       }
     }
   }

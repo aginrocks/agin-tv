@@ -8,6 +8,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "WEBKIT_DISABLE_DMABUF_RENDERER=1 tauri",
+    "tauri:build": "pnpm tauri build",
+    "tauri:build:deb": "pnpm tauri build --bundles deb",
+    "tauri:build:rpm": "pnpm tauri build --bundles rpm",
+    "tauri:build:linux": "pnpm tauri build --bundles deb,rpm",
     "typegen": "openapi-typescript http://localhost:42069/apidoc/openapi.json -o ./src/types/api.d.ts"
   },
   "dependencies": {

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Agin TV
+Comment=Agin TV Desktop Application
+Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 desktop %U
+Icon=agin-tv
+Terminal=false
+Categories=Network;AudioVideo;
+MimeType=x-scheme-handler/agin-tv;
