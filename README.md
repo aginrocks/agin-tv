@@ -8,7 +8,7 @@ This is a desktop application built with Tauri that allows users to browse and s
 
 ## Demo video:
 
-[![](https://markdown-videos-api.jorgenkh.no/youtube/jkgMbvZ5868)](https://youtu.be/fgudVgl1VRA)
+[![](https://markdown-videos-api.jorgenkh.no/youtube/fgudVgl1VRA)](https://youtu.be/fgudVgl1VRA)
 
 
 ## Features
