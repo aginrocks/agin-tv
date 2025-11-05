@@ -8,6 +8,8 @@ This is a desktop application built with Tauri that allows users to browse and s
 
 ## Demo video:
 
+[![](https://markdown-videos-api.jorgenkh.no/youtube/jkgMbvZ5868)](https://youtu.be/fgudVgl1VRA)
+
 
 ## Features
 - OIDC login with authentik(you can use different provider if you want, it really doesn't matter).
